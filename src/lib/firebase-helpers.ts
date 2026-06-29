@@ -33,7 +33,15 @@ export async function logActivity(action: string, details: string, operatorId?: 
   }
 }
 
-export async function syncQueueStats(queueId: string, data: Partial<any>) {
+export interface QueueStatsUpdate {
+  deptName?: string;
+  isActive?: boolean;
+  currentCounter?: number;
+  lastToken?: number;
+  waitingCount?: number;
+}
+
+export async function syncQueueStats(queueId: string, data: QueueStatsUpdate) {
   try {
     await setDoc(doc(db, 'publicQueueStats', queueId), data, { merge: true });
   } catch (err) {
@@ -126,7 +134,12 @@ export async function resetQueue(queueId: string) {
     lastToken: 0,
     waitingCount: 0,
   });
-  const tokensSnap = await getDocs(collection(db, 'queues', queueId, 'tokens'));
+  const tokensSnap = await getDocs(
+    query(
+      collection(db, 'queues', queueId, 'tokens'),
+      where('status', 'in', ['waiting', 'called'])
+    )
+  );
   const batchPromises = tokensSnap.docs.map(d => deleteDoc(d.ref));
   await Promise.all(batchPromises);
   await logActivity('QUEUE_CLOSED', `Queue "${queueId}" was reset.`);
@@ -159,6 +172,13 @@ export async function joinQueue(queueId: string, studentId: string, studentName:
     status: 'waiting',
     timestamp: new Date(),
   });
+
+  await logActivity(
+    'TOKEN_JOINED',
+    `Token #${newTokenNumber} (${studentName}) joined queue "${queueId}".`,
+    studentId,
+    studentName
+  );
 
   return { tokenId: tokenRef.id, tokenNumber: newTokenNumber };
 }
@@ -308,7 +328,7 @@ export async function getQueueStatistics() {
     const qData = qDoc.data();
     const tokensSnap = await getDocs(collection(db, 'queues', qDoc.id, 'tokens'));
     
-    let tokensIssued = tokensSnap.size;
+    const tokensIssued = tokensSnap.size;
     let tokensCompleted = 0;
     let tokensWaiting = 0;
     let totalServiceTime = 0;

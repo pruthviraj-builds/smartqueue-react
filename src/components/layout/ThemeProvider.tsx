@@ -18,7 +18,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem('color-theme') as Theme | null;
     const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     const t = stored ?? preferred;
-    setTheme(t);
+    setTimeout(() => {
+      setTheme(t);
+    }, 0);
     document.documentElement.classList.toggle('dark', t === 'dark');
     document.documentElement.classList.toggle('light', t === 'light');
   }, []);

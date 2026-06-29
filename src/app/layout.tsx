@@ -1,6 +1,13 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/layout/ThemeProvider';
+import { RecaptchaProvider } from '@/components/layout/RecaptchaProvider';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'SmartQueue | GH Raisoni College',
@@ -14,14 +21,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-      </head>
-      <body>
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+      <body className={inter.className}>
+        <RecaptchaProvider>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </RecaptchaProvider>
       </body>
     </html>
   );

@@ -46,6 +46,7 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -344,10 +345,16 @@ a { text-decoration: none; color: inherit; }
    Fade-in animation
    ============================================ */
 .sq-fade-in {
-  opacity: 0;
-  transform: translateY(16px);
-  animation: sqFadeIn 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
+  opacity: 1;
+  transform: none;
+  animation: none;
 }
+
+.sq-fade-in:nth-child(1) { animation-delay: 0.05s; }
+.sq-fade-in:nth-child(2) { animation-delay: 0.12s; }
+.sq-fade-in:nth-child(3) { animation-delay: 0.18s; }
+.sq-fade-in:nth-child(4) { animation-delay: 0.24s; }
+
 @keyframes sqFadeIn {
   to { opacity: 1; transform: translateY(0); }
 }
@@ -463,5 +470,19 @@ a { text-decoration: none; color: inherit; }
   }
   .sq-nav-actions {
     gap: 8px;
+  }
+}
+.grecaptcha-badge {
+  visibility: hidden !important;
+}
+
+/* Safety: ensure sections are never permanently hidden */
+section {
+  min-height: 0;
+  visibility: visible;
+}
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

@@ -4,7 +4,6 @@ import React, { useState, useDeferredValue } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { EmptyState } from '@/components/ui/EmptyState';
-import Link from 'next/link';
 
 interface FAQItem {
   id: string;
@@ -149,6 +148,10 @@ export function FAQContent() {
 
         {/* CSS styles */}
         <style>{`
+          .faq-filter-row::-webkit-scrollbar {
+            display: none;
+          }
+
           .faq-hero {
             max-width: 840px;
             margin: 0 auto;
@@ -235,7 +238,7 @@ export function FAQContent() {
             max-width: 880px;
             width: 100%;
             margin: 0 auto auto;
-            padding: 0 20px 80px;
+            padding: 0 20px 40px;
             box-sizing: border-box;
           }
           
@@ -339,7 +342,7 @@ export function FAQContent() {
           .faq-support-card {
             max-width: 840px;
             width: 100%;
-            margin: 0 auto 80px;
+            margin: 0 auto 40px;
             padding: 0 20px;
             box-sizing: border-box;
           }
@@ -467,7 +470,19 @@ export function FAQContent() {
         {/* 3. FAQ GRID */}
         <main className="faq-container">
           {/* Left: Category Sidebar */}
-          <aside className="faq-sidebar sq-fade-in" aria-label="FAQ Categories">
+          <aside
+            className="faq-sidebar sq-fade-in faq-filter-row"
+            aria-label="FAQ Categories"
+            style={{
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              paddingBottom: '8px',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
             {CATEGORIES.map((category) => {
               const isActive = selectedCategory === category;
               return (
@@ -476,6 +491,10 @@ export function FAQContent() {
                   className={`faq-category-btn ${isActive ? 'active' : ''}`}
                   onClick={() => setSelectedCategory(category)}
                   aria-pressed={isActive}
+                  style={{
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                  }}
                 >
                   <span>{category}</span>
                   <span className="faq-category-count">{getCategoryCount(category)}</span>
@@ -494,9 +513,21 @@ export function FAQContent() {
                     key={faq.id}
                     className="faq-item-card sq-fade-in"
                     onClick={() => toggleFaq(faq.id)}
-                    aria-expanded={isOpen}
                   >
-                    <div className="faq-item-question-row">
+                    <button
+                      type="button"
+                      className="faq-item-question-row"
+                      style={{
+                        width: '100%',
+                        background: 'none',
+                        border: 'none',
+                        textAlign: 'left',
+                        padding: 0,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                      aria-expanded={isOpen}
+                    >
                       <h3 className="faq-item-question">{faq.q}</h3>
                       <svg
                         width="16"
@@ -516,7 +547,7 @@ export function FAQContent() {
                       >
                         <polyline points="6 9 12 15 18 9" />
                       </svg>
-                    </div>
+                    </button>
 
                     <div className={`faq-item-answer-wrapper ${isOpen ? 'open' : ''}`}>
                       <p className="faq-item-answer">{faq.a}</p>
@@ -546,7 +577,7 @@ export function FAQContent() {
           <div className="faq-support-inner">
             <h2 className="faq-support-title">Still have questions?</h2>
             <p className="faq-support-desc">
-              If you couldn't find the answers you were looking for, please connect with the G H Raisoni administrative office or IT help desk.
+              If you couldn&apos;t find the answers you were looking for, please connect with the G H Raisoni administrative office or IT help desk.
             </p>
             <div className="faq-support-buttons">
               <a href="mailto:info.jalgaon@raisoni.net" className="sq-btn sq-btn-primary">

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { Navbar } from '@/components/layout/Navbar';
 import {
@@ -10,26 +11,42 @@ import {
   signOut,
 } from 'firebase/auth';
 import { getUserDoc } from '@/lib/firebase-helpers';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 export default function StudentLoginPage() {
+  const router = useRouter();
+  const { executeRecaptcha } = useGoogleReCaptcha();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = useCallback(async () => {
     if (!email || !password) {
       setError('Please fill in all fields.');
       return;
     }
     setError('');
+
+    // reCAPTCHA check
+    if (!executeRecaptcha) {
+      setError('reCAPTCHA not ready. Please try again.');
+      return;
+    }
+    const captchaToken = await executeRecaptcha('login');
+    if (!captchaToken) {
+      setError('CAPTCHA verification failed. Please try again.');
+      return;
+    }
+
     setLoading(true);
     try {
       const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
       const user = await getUserDoc(cred.user.uid);
       if (user && user.role === 'student') {
-        window.location.href = '/dashboard';
+        router.push('/dashboard');
       } else {
         await signOut(auth);
         setError('Access denied — not a student account.');
@@ -39,7 +56,7 @@ export default function StudentLoginPage() {
       setError('Invalid email or password.');
       setLoading(false);
     }
-  };
+  }, [email, password, executeRecaptcha, router]);
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
@@ -50,7 +67,7 @@ export default function StudentLoginPage() {
       await sendPasswordResetEmail(auth, email.trim());
       setResetSent(true);
       setError('');
-    } catch (e: any) {
+    } catch {
       setError('Could not send reset email. Check the address and try again.');
     }
   };
@@ -67,7 +84,6 @@ export default function StudentLoginPage() {
         <div className="sq-auth-card">
           <div className="sq-card sq-fade-in" style={{ padding: 40 }}>
 
-            {/* Header */}
             <div style={{ marginBottom: 32 }}>
               <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
                 Welcome back
@@ -77,7 +93,6 @@ export default function StudentLoginPage() {
               </p>
             </div>
 
-            {/* Email */}
             <div style={{ marginBottom: 18 }}>
               <label className="sq-label">Email</label>
               <input
@@ -91,7 +106,6 @@ export default function StudentLoginPage() {
               />
             </div>
 
-            {/* Password */}
             <div style={{ marginBottom: 8 }}>
               <label className="sq-label">Password</label>
               <input
@@ -105,7 +119,6 @@ export default function StudentLoginPage() {
               />
             </div>
 
-            {/* Forgot password link */}
             <div style={{ textAlign: 'right', marginBottom: 20 }}>
               <button
                 onClick={handleForgotPassword}
@@ -121,34 +134,37 @@ export default function StudentLoginPage() {
               </button>
             </div>
 
-            {/* Error alert */}
             {error && (
               <div className="sq-alert sq-alert-error show" style={{ marginBottom: 16 }}>
                 {error}
               </div>
             )}
 
-            {/* Reset email success */}
             {resetSent && (
               <div className="sq-alert sq-alert-success show" style={{ marginBottom: 16 }}>
                 ✓ Reset email sent — check your inbox and spam folder.
               </div>
             )}
 
-            {/* Login button */}
             <button
               onClick={handleLogin}
               disabled={loading}
               className="sq-btn sq-btn-primary sq-btn-full sq-btn-lg"
-              style={{ marginBottom: 20, opacity: loading ? 0.7 : 1 }}
+              style={{ marginBottom: 16, opacity: loading ? 0.7 : 1 }}
             >
               {loading ? 'Logging in…' : 'Login'}
             </button>
 
-            {/* Divider */}
+            {/* reCAPTCHA notice */}
+            <p style={{ fontSize: 11, color: 'var(--text-dim)', textAlign: 'center', marginBottom: 16 }}>
+              Protected by reCAPTCHA —{' '}
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer" style={{ color: 'var(--text-dim)' }}>Privacy</a>
+              {' & '}
+              <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer" style={{ color: 'var(--text-dim)' }}>Terms</a>
+            </p>
+
             <hr className="sq-divider" />
 
-            {/* Register link */}
             <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-sub)' }}>
               No account?{' '}
               <Link

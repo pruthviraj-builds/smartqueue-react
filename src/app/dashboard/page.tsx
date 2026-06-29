@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { Navbar } from '@/components/layout/Navbar';
@@ -36,6 +36,7 @@ const QUEUE_ICONS: Record<string, string> = {
 };
 
 export default function StudentDashboard() {
+  const router = useRouter();
   const [userName, setUserName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [queues, setQueues] = useState<QueueData[]>([]);
@@ -61,7 +62,7 @@ export default function StudentDashboard() {
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        window.location.href = '/login';
+        router.push('/login');
         return;
       }
       setCurrentUserId(user.uid);
@@ -72,7 +73,7 @@ export default function StudentDashboard() {
           const data = userDoc.data();
           if (data.role !== 'student') {
             await signOut(auth);
-            window.location.href = '/login';
+            router.push('/login');
             return;
           }
           const name = data.name as string;
@@ -80,17 +81,15 @@ export default function StudentDashboard() {
           setFirstName(name.split(' ')[0]);
         } else {
           await signOut(auth);
-          window.location.href = '/login';
+          router.push('/login');
           return;
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to load user profile:', err);
         setError('Unable to load user profile. Please verify your connection.');
       }
     });
 
-    setLoading(true);
-    setError(null);
     const unsubQueues = onSnapshot(collection(db, 'queues'), (snap) => {
       const results = snap.docs.map((qDoc) => {
         const q = qDoc.data();
@@ -116,9 +115,9 @@ export default function StudentDashboard() {
       unsubAuth();
       unsubQueues();
     };
-  }, []);
+  }, [router]);
 
-  const joinQueue = async (queueId: string, deptName: string) => {
+  const joinQueue = async (queueId: string) => {
     if (!currentUserId) return;
     if (!isOnline) {
       alert('You are offline. Please check your connection.');
@@ -159,8 +158,8 @@ export default function StudentDashboard() {
       // Use joinQueue helper
       const { tokenId } = await joinQueueAction(queueId, currentUserId, studentName);
 
-      window.location.href = `/token?queueId=${queueId}&tokenId=${tokenId}`;
-    } catch (error: any) {
+      router.push(`/token?queueId=${queueId}&tokenId=${tokenId}`);
+    } catch {
       alert('Failed to join queue. Please try again.');
       setJoiningId(null);
     }
@@ -168,7 +167,7 @@ export default function StudentDashboard() {
 
   const handleLogout = async () => {
     await signOut(auth);
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   return (
@@ -283,7 +282,7 @@ export default function StudentDashboard() {
                 {/* Action */}
                 {queue.isActive ? (
                   <button
-                    onClick={() => joinQueue(queue.id, queue.deptName)}
+                    onClick={() => joinQueue(queue.id)}
                     disabled={isJoining || joiningId !== null || !isOnline}
                     className="sq-btn sq-btn-primary sq-btn-sm"
                     style={{

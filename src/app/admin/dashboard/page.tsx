@@ -7,7 +7,8 @@ import { Navbar } from '@/components/layout/Navbar';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { collection, onSnapshot, query, where, doc, getDocs, collectionGroup, orderBy, limit } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { collection, onSnapshot, query, where, getDocs, collectionGroup, orderBy, limit } from 'firebase/firestore';
 import {
   getUserDoc,
   createQueue,
@@ -62,6 +63,7 @@ interface ActivityLog {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [adminName, setAdminName] = useState('');
   const [queues, setQueues] = useState<QueueData[]>([]);
   const [staffList, setStaffList] = useState<StaffUser[]>([]);
@@ -77,6 +79,16 @@ export default function AdminDashboard() {
   
   // Tab State: 'overview' (Queues), 'manage' (Staff), 'analytics' (Analytics)
   const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'analytics'>('overview');
+
+  // Date filter states
+  type DateFilter = 'today' | 'yesterday' | 'week' | 'custom';
+  const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+
+  // Log view tab state
+  type LogView = 'system' | 'student';
+  const [logView, setLogView] = useState<LogView>('system');
   
   // Search & Tooltips
   const [searchQuery, setSearchQuery] = useState('');
@@ -135,7 +147,7 @@ export default function AdminDashboard() {
 
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        window.location.href = '/admin/login';
+        router.push('/admin/login');
         return;
       }
       
@@ -143,7 +155,7 @@ export default function AdminDashboard() {
         const data = await getUserDoc(user.uid);
         if (!data || data.role !== 'admin') {
           await signOut(auth);
-          window.location.href = '/admin/login';
+          router.push('/admin/login');
           return;
         }
         setAdminName(data.name as string);
@@ -187,7 +199,7 @@ export default function AdminDashboard() {
 
         // Realtime listener for activity logs
         unsubLogs = onSnapshot(
-          query(collection(db, 'activityLogs'), orderBy('timestamp', 'desc'), limit(15)),
+          query(collection(db, 'activityLogs'), orderBy('timestamp', 'desc'), limit(100)),
           (snap) => {
             const logs = snap.docs.map((d) => {
               const u = d.data();
@@ -206,7 +218,7 @@ export default function AdminDashboard() {
 
         // Realtime listener for tokens across all queues (collectionGroup)
         unsubTokens = onSnapshot(collectionGroup(db, 'tokens'), (snap) => {
-          let totalIssued = snap.size;
+          const totalIssued = snap.size;
           let totalCompleted = 0;
           let totalWaiting = 0;
           let totalWaitTime = 0;
@@ -229,6 +241,14 @@ export default function AdminDashboard() {
 
           snap.docs.forEach((tDoc) => {
             const t = tDoc.data();
+
+            // Only count today's tokens
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const tokenDate = t.timestamp?.toDate?.();
+            const isToday = tokenDate && tokenDate >= todayStart;
+            if (!isToday) return; // skip tokens not from today
+
             // Find parent queue ID
             const queueId = tDoc.ref.parent.parent?.id || '';
 
@@ -303,7 +323,7 @@ export default function AdminDashboard() {
             setQueueStats(stats);
           });
         });
-      } catch (err: any) {
+      } catch (err) {
         console.error('Admin initialization failed:', err);
         setDbError('Failed to initialize administrator session.');
       }
@@ -316,7 +336,7 @@ export default function AdminDashboard() {
       unsubTokens?.();
       unsubLogs?.();
     };
-  }, []);
+  }, [router]);
 
   const handleCreateQueue = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -418,7 +438,7 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     await signOut(auth);
-    window.location.href = '/admin/login';
+    router.push('/admin/login');
   };
 
   // Directory filter logic
@@ -432,6 +452,59 @@ export default function AdminDashboard() {
   const maxSvcTime = Math.max(...queueStats.map(stat => stat.avgServiceTime), 5);
   const tokensIssuedChartHeight = Math.max(queueStats.length * 55 + 50, 150);
 
+  // Date range filter helper
+  function getDateRange(filter: DateFilter, cStart: string, cEnd: string): { start: Date; end: Date } {
+    const now = new Date();
+    const startOfDay = (d: Date) => { d.setHours(0,0,0,0); return d; };
+    const endOfDay = (d: Date) => { d.setHours(23,59,59,999); return d; };
+
+    if (filter === 'today') {
+      return { start: startOfDay(new Date()), end: endOfDay(new Date()) };
+    }
+    if (filter === 'yesterday') {
+      const y = new Date(now); y.setDate(y.getDate() - 1);
+      return { start: startOfDay(y), end: endOfDay(new Date(y)) };
+    }
+    if (filter === 'week') {
+      const w = new Date(now); w.setDate(w.getDate() - 7);
+      return { start: startOfDay(w), end: endOfDay(new Date()) };
+    }
+    if (filter === 'custom' && cStart && cEnd) {
+      return { start: startOfDay(new Date(cStart)), end: endOfDay(new Date(cEnd)) };
+    }
+    return { start: startOfDay(new Date()), end: endOfDay(new Date()) };
+  }
+
+  // Filtered activity logs by date range
+  const { start, end } = getDateRange(dateFilter, customStart, customEnd);
+  const filteredLogs = activityLogs.filter(log => {
+    if (!log.timestamp) return false;
+    return log.timestamp >= start && log.timestamp <= end;
+  });
+
+  const SYSTEM_ACTIONS = [
+    'QUEUE_OPENED',
+    'QUEUE_CLOSED',
+    'QUEUE_RESET',
+    'QUEUE_CREATED',
+    'QUEUE_DELETED',
+    'TOKEN_CALLED',
+    'TOKEN_COMPLETED',
+    'STAFF_ASSIGNED',
+    'STAFF_UNASSIGNED',
+  ];
+
+  const STUDENT_ACTIONS = [
+    'TOKEN_CANCELLED',
+    'TOKEN_JOINED',
+  ];
+
+  const viewFilteredLogs = filteredLogs.filter(log => {
+    if (logView === 'system') return SYSTEM_ACTIONS.includes(log.action);
+    if (logView === 'student') return STUDENT_ACTIONS.includes(log.action);
+    return true;
+  });
+
   // Aggregates
   const activeCount = queues.filter(q => q.isActive).length;
   const totalWaiting = queues.reduce((acc, q) => acc + q.waitingCount, 0);
@@ -443,7 +516,7 @@ export default function AdminDashboard() {
         userName={adminName} 
         onLogout={handleLogout} 
         activeTab={activeTab} 
-        onTabChange={(tab) => setActiveTab(tab as any)} 
+        onTabChange={(tab) => setActiveTab(tab as 'overview' | 'manage' | 'analytics')} 
       />
 
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '40px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -1017,15 +1090,80 @@ export default function AdminDashboard() {
 
                 {/* Realtime Activity Logs Table */}
                 <div className="sq-card sq-fade-in" style={{ animationDelay: '0.15s' }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 18 }}>
-                    Recent System Activity Log
-                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
 
-                  {activityLogs.length === 0 ? (
+                    {/* Row 1 — Title + View Tabs */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                      <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
+                        Activity Log
+                      </h3>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          onClick={() => setLogView('system')}
+                          className={`sq-btn sq-btn-sm ${logView === 'system' ? 'sq-btn-primary' : 'sq-btn-ghost'}`}
+                          style={{ fontSize: 11, height: 28, padding: '0 12px' }}
+                        >
+                          ⚙️ Staff & Admin
+                        </button>
+                        <button
+                          onClick={() => setLogView('student')}
+                          className={`sq-btn sq-btn-sm ${logView === 'student' ? 'sq-btn-primary' : 'sq-btn-ghost'}`}
+                          style={{ fontSize: 11, height: 28, padding: '0 12px' }}
+                        >
+                          🎓 Student
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Row 2 — Date Filters */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      {(['today', 'yesterday', 'week', 'custom'] as DateFilter[]).map(f => (
+                        <button
+                          key={f}
+                          onClick={() => setDateFilter(f)}
+                          className={`sq-btn sq-btn-sm ${dateFilter === f ? 'sq-btn-primary' : 'sq-btn-ghost'}`}
+                          style={{ fontSize: 11, height: 28, padding: '0 10px', textTransform: 'capitalize' }}
+                        >
+                          {f === 'today' ? 'Today' : f === 'yesterday' ? 'Yesterday' : f === 'week' ? 'Last 7 Days' : 'Custom'}
+                        </button>
+                      ))}
+                      {dateFilter === 'custom' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <input
+                            type="date"
+                            className="sq-input"
+                            style={{ height: 28, fontSize: 11, padding: '0 8px', borderRadius: 8 }}
+                            value={customStart}
+                            onChange={e => setCustomStart(e.target.value)}
+                          />
+                          <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>to</span>
+                          <input
+                            type="date"
+                            className="sq-input"
+                            style={{ height: 28, fontSize: 11, padding: '0 8px', borderRadius: 8 }}
+                            value={customEnd}
+                            onChange={e => setCustomEnd(e.target.value)}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Log count */}
+                    <p style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+                      Showing {viewFilteredLogs.length} {logView === 'system' ? 'staff/admin' : 'student'} events
+                    </p>
+
+                  </div>
+
+                  {viewFilteredLogs.length === 0 ? (
                     <EmptyState
-                      icon="📋"
-                      title="No activity recorded"
-                      description="No system activity has been logged yet."
+                      icon={logView === 'student' ? '🎓' : '📋'}
+                      title={logView === 'student' ? 'No student activity' : 'No system activity'}
+                      description={
+                        logView === 'student'
+                          ? 'No student actions (join/leave queue) recorded in this period.'
+                          : 'No staff or admin actions recorded in this period.'
+                      }
                       style={{ margin: 0, padding: '24px 16px' }}
                     />
                   ) : (
@@ -1040,10 +1178,14 @@ export default function AdminDashboard() {
                           </tr>
                         </thead>
                         <tbody>
-                          {activityLogs.map((log) => (
+                          {viewFilteredLogs.map((log) => (
                             <tr key={log.id} style={{ borderBottom: '1px solid var(--border-s)' }}>
                               <td style={{ padding: '12px 8px', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
-                                {log.timestamp ? log.timestamp.toLocaleTimeString() : '...'}
+                                {log.timestamp 
+                                  ? log.timestamp.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) 
+                                    + ' · ' 
+                                    + log.timestamp.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+                                  : '...'}
                               </td>
                               <td style={{ padding: '12px 8px' }}>
                                 <span className={`sq-badge ${

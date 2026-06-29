@@ -36,7 +36,9 @@ export function Navbar({
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setTimeout(() => {
+      setMounted(true);
+    }, 0);
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
@@ -114,7 +116,7 @@ export function Navbar({
       `}</style>
 
       <Link href={logoHref} className="sq-logo">
-        <div className="sq-logo-mark">{logoMark}</div>
+        <div className="sq-logo-mark" style={{ background: 'var(--text)', color: 'var(--bg)' }}>{logoMark}</div>
         <div>
           <div className="sq-logo-name">{logoName}</div>
           <div className="sq-logo-sub">{logoSub}</div>
@@ -123,13 +125,6 @@ export function Navbar({
 
       {/* Middle Links - Portal-Specific */}
       <div className="sq-nav-links">
-        {isPublic && (
-          <>
-            <Link href="/" className="sq-nav-link">Home</Link>
-            <Link href="/login" className="sq-nav-link">Student Login</Link>
-          </>
-        )}
-
         {isStudent && (
           <>
             <Link href="/dashboard" className={`sq-nav-link ${portal === 'student' ? 'active' : ''}`}>Dashboard</Link>
@@ -185,7 +180,17 @@ export function Navbar({
 
       <div className="sq-nav-actions">
 
-
+        {/* Public portal CTAs */}
+        {isPublic && (
+          <>
+            <Link href="/login" className="sq-btn sq-btn-ghost sq-btn-sm">
+              Login
+            </Link>
+            <Link href="/register" className="sq-btn sq-btn-primary sq-btn-sm">
+              Create Account
+            </Link>
+          </>
+        )}
         {/* User Info Capsule */}
         {(isStudent || isStaff || isAdmin) && userName && (
           <div style={{

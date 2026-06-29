@@ -7,6 +7,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useRouter } from 'next/navigation';
 import {
   collection,
   doc,
@@ -15,7 +16,6 @@ import {
   query,
   where,
   orderBy,
-  limit,
 } from 'firebase/firestore';
 import {
   getUserDoc,
@@ -49,6 +49,7 @@ interface QueueState {
 }
 
 export default function StaffDashboard() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'assigned' | 'controls'>('assigned');
   const [staffName, setStaffName] = useState('');
   const [queueOptions, setQueueOptions] = useState<QueueMeta[]>([]);
@@ -66,18 +67,16 @@ export default function StaffDashboard() {
   // Auth guard and live listener for assigned queues
   useEffect(() => {
     let unsubQueues: (() => void) | null = null;
-    setLoading(true);
-    setError(null);
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        window.location.href = '/staff/login';
+        router.push('/staff/login');
         return;
       }
       try {
         const data = await getUserDoc(user.uid);
         if (!data || data.role !== 'staff') {
           await signOut(auth);
-          window.location.href = '/staff/login';
+          router.push('/staff/login');
           return;
         }
         setStaffName(data.name as string);
@@ -105,7 +104,7 @@ export default function StaffDashboard() {
             setLoading(false);
           }
         );
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to authenticate or load user profile:', err);
         setError('Unable to load staff profile. Please try again.');
         setLoading(false);
@@ -116,7 +115,7 @@ export default function StaffDashboard() {
       unsubAuth();
       unsubQueues?.();
     };
-  }, []);
+  }, [router]);
 
   // When queue selection changes, start listeners
   const handleQueueSelect = (queueId: string) => {
@@ -250,7 +249,7 @@ export default function StaffDashboard() {
     unsubQueueRef.current?.();
     unsubTokensRef.current?.();
     await signOut(auth);
-    window.location.href = '/staff/login';
+    router.push('/staff/login');
   };
 
   const isActive = queueState?.isActive ?? true;
@@ -262,7 +261,7 @@ export default function StaffDashboard() {
         userName={staffName} 
         onLogout={handleLogout} 
         activeTab={activeTab} 
-        onTabChange={(tab) => setActiveTab(tab as any)} 
+        onTabChange={(tab) => setActiveTab(tab as 'assigned' | 'controls')} 
       />
 
       <div style={{

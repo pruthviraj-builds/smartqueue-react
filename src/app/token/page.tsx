@@ -1,14 +1,12 @@
 'use client';
 
-import { useEffect, useState, useRef, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { Navbar } from '@/components/layout/Navbar';
 import { leaveQueue as leaveQueueAction, getUserDoc, logActivity } from '@/lib/firebase-helpers';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
   doc,
@@ -45,6 +43,7 @@ function formatWait(secs: number): string {
 
 function TokenPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [activeQueueId, setActiveQueueId] = useState<string | null>(null);
   const [activeTokenId, setActiveTokenId] = useState<string | null>(null);
   const [findingToken, setFindingToken] = useState(false);
@@ -61,53 +60,8 @@ function TokenPageContent() {
   const unsubTokenRef = useRef<(() => void) | null>(null);
   const unsubQueueRef = useRef<(() => void) | null>(null);
 
-  // Online/offline
-  useEffect(() => {
-    const update = () => setIsOnline(navigator.onLine);
-    window.addEventListener('online', update);
-    window.addEventListener('offline', update);
-    update();
-    return () => {
-      window.removeEventListener('online', update);
-      window.removeEventListener('offline', update);
-    };
-  }, []);
-
-  // Auth guard + Role check + Active Token Search Fallback
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        window.location.href = '/login';
-        return;
-      }
-      try {
-        const profile = await getUserDoc(user.uid);
-        if (!profile || profile.role !== 'student') {
-          await signOut(auth);
-          window.location.href = '/login';
-          return;
-        }
-
-        const qParam = searchParams.get('queueId');
-        const tParam = searchParams.get('tokenId');
-
-        if (qParam && tParam) {
-          setActiveQueueId(qParam);
-          setActiveTokenId(tParam);
-        } else {
-          setFindingToken(true);
-          await searchActiveToken(user.uid);
-        }
-      } catch (err) {
-        await signOut(auth);
-        window.location.href = '/login';
-      }
-    });
-    return () => unsub();
-  }, [searchParams]);
-
   // Scan all queues for student's active token
-  const searchActiveToken = async (uid: string) => {
+  const searchActiveToken = useCallback(async (uid: string) => {
     try {
       const queuesSnap = await getDocs(collection(db, 'queues'));
       for (const qDoc of queuesSnap.docs) {
@@ -137,23 +91,9 @@ function TokenPageContent() {
       setNoTokenFound(true);
       setFindingToken(false);
     }
-  };
+  }, []);
 
-  // Request notification permission + load avg service time + start listeners
-  useEffect(() => {
-    if (!activeQueueId || !activeTokenId) return;
-
-    requestNotifications();
-    loadAvgServiceTime();
-    startListeners();
-
-    return () => {
-      unsubTokenRef.current?.();
-      unsubQueueRef.current?.();
-    };
-  }, [activeQueueId, activeTokenId]);
-
-  const requestNotifications = async () => {
+  const requestNotifications = useCallback(async () => {
     if (!('Notification' in window)) return;
     try {
       const permission = await Notification.requestPermission();
@@ -165,9 +105,9 @@ function TokenPageContent() {
     } catch {
       // silently fail
     }
-  };
+  }, []);
 
-  const sendNotification = async (title: string, body: string) => {
+  const sendNotification = useCallback(async (title: string, body: string) => {
     if (!notifGranted) return;
     try {
       if ('serviceWorker' in navigator) {
@@ -186,9 +126,9 @@ function TokenPageContent() {
     } catch {
       // silently fail
     }
-  };
+  }, [notifGranted]);
 
-  const loadAvgServiceTime = async () => {
+  const loadAvgServiceTime = useCallback(async () => {
     if (!activeQueueId) return;
     try {
       const snap = await getDocs(
@@ -213,9 +153,9 @@ function TokenPageContent() {
     } catch {
       // use default
     }
-  };
+  }, [activeQueueId]);
 
-  const startListeners = () => {
+  const startListeners = useCallback(() => {
     if (!activeQueueId || !activeTokenId) return;
 
     // Token listener
@@ -223,7 +163,7 @@ function TokenPageContent() {
       doc(db, 'queues', activeQueueId, 'tokens', activeTokenId),
       (snap) => {
         if (!snap.exists()) {
-          window.location.href = '/dashboard';
+          router.push('/dashboard');
           return;
         }
         const data = snap.data();
@@ -248,7 +188,68 @@ function TokenPageContent() {
         });
       }
     );
-  };
+  }, [activeQueueId, activeTokenId, router]);
+
+  // Online/offline
+  useEffect(() => {
+    const update = () => setIsOnline(navigator.onLine);
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    update();
+    return () => {
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
+    };
+  }, []);
+
+  // Auth guard + Role check + Active Token Search Fallback
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+      try {
+        const profile = await getUserDoc(user.uid);
+        if (!profile || profile.role !== 'student') {
+          await signOut(auth);
+          router.push('/login');
+          return;
+        }
+
+        const qParam = searchParams.get('queueId');
+        const tParam = searchParams.get('tokenId');
+
+        if (qParam && tParam) {
+          setActiveQueueId(qParam);
+          setActiveTokenId(tParam);
+        } else {
+          setFindingToken(true);
+          await searchActiveToken(user.uid);
+        }
+      } catch {
+        await signOut(auth);
+        router.push('/login');
+      }
+    });
+    return () => unsub();
+  }, [searchParams, searchActiveToken, router]);
+
+  // Request notification permission + load avg service time + start listeners
+  useEffect(() => {
+    if (!activeQueueId || !activeTokenId) return;
+
+    setTimeout(() => {
+      requestNotifications();
+      loadAvgServiceTime();
+      startListeners();
+    }, 0);
+
+    return () => {
+      unsubTokenRef.current?.();
+      unsubQueueRef.current?.();
+    };
+  }, [activeQueueId, activeTokenId, requestNotifications, loadAvgServiceTime, startListeners]);
 
   // Notification trigger based on position
   useEffect(() => {
@@ -281,7 +282,7 @@ function TokenPageContent() {
         `Your token #${token.tokenNumber} has been called for ${queue.deptName}!`
       );
     }
-  }, [token, queue, notifGranted]);
+  }, [token, queue, sendNotification]);
 
   const handleLeaveQueue = async () => {
     if (!confirm('Leave the queue? Your token will be cancelled.')) return;
@@ -293,14 +294,14 @@ function TokenPageContent() {
       }
       await leaveQueueAction(activeQueueId, activeTokenId);
     }
-    window.location.href = '/dashboard';
+    router.push('/dashboard');
   };
 
   const handleLogout = async () => {
     unsubTokenRef.current?.();
     unsubQueueRef.current?.();
     await signOut(auth);
-    window.location.href = '/login';
+    router.push('/login');
   };
 
 

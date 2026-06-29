@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { auth } from '@/lib/firebase';
 import { Navbar } from '@/components/layout/Navbar';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -118,7 +117,7 @@ export default function StaffLoginPage() {
               borderRadius: 12, fontSize: 12, color: 'var(--text-dim)',
               lineHeight: 1.5,
             }}>
-              🔒 Staff accounts are created by the admin. Contact your system administrator if you don't have access.
+              🔒 Staff accounts are created by the admin. Contact your system administrator if you don&apos;t have access.
             </div>
 
           </div>

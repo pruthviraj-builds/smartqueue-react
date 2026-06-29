@@ -3,186 +3,172 @@
 import React from 'react';
 import Link from 'next/link';
 
-export interface InstitutionConfig {
-  institutionName: string;
-  supportEmail: string;
-  portalUrl: string;
-  supportPhone?: string;
-}
-
-const DEFAULT_CONFIG: InstitutionConfig = {
-  institutionName: "GH Raisoni College of Engineering & Management, Jalgaon",
-  supportEmail: "info.jalgaon@raisoni.net",
-  portalUrl: "https://ghrcem.raisoni.net",
-  supportPhone: "+91 257 2264881-83",
-};
-
-interface FooterProps {
-  config?: InstitutionConfig;
-}
-
-export function Footer({ config }: FooterProps) {
-  const c = { ...DEFAULT_CONFIG, ...config };
-
+export function Footer() {
   return (
-    <footer className="sq-footer">
+    <footer className="footer-band sq-footer">
       <style>{`
         .sq-footer {
           border-top: 1px solid var(--border-s);
           padding: 60px 20px 40px;
-          background: var(--bg);
-          color: var(--text-sub);
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
           position: relative;
           z-index: 10;
         }
-        .sq-footer-grid {
+        .footer-band {
+          background: #fdf6f0;
+        }
+        .dark .footer-band {
+          background: #1a1412;
+        }
+        .footer-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 40px;
-          max-width: 1280px;
-          margin: 0 auto;
+          grid-template-columns: 2fr 1fr 1fr 1fr;
+          gap: 48px;
+          margin-bottom: 48px;
+          max-width: 960px;
+          margin-left: auto;
+          margin-right: auto;
         }
         .sq-footer-col {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          align-items: flex-start;
         }
         .sq-footer-title {
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
           color: var(--text);
-          margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 16px;
+          margin-top: 0;
         }
-        .sq-footer-link {
+        .footer-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0px;
+          font-size: 13px;
           color: var(--text-dim);
           text-decoration: none;
-          font-size: 13px;
-          transition: color 0.2s ease;
-          display: inline-block;
+          margin-bottom: 12px;
+          transition: color 0.2s ease, gap 0.2s ease, padding-left 0.2s ease;
           cursor: pointer;
+          position: relative;
+          padding-left: 0;
         }
-        .sq-footer-link:hover {
+        .footer-link::before {
+          content: '→';
+          font-size: 11px;
+          opacity: 0;
+          transform: translateX(-6px);
+          transition: opacity 0.2s ease, transform 0.2s ease;
+          position: absolute;
+          left: -16px;
           color: var(--accent);
         }
-        .sq-footer-text {
-          color: var(--text-dim);
-          font-size: 13px;
-          margin: 0;
+        .footer-link:hover {
+          color: var(--text);
+          padding-left: 6px;
         }
-        .sq-footer-divider {
-          border: 0;
-          border-top: 1px solid var(--border-s);
-          margin: 40px auto 24px;
-          max-width: 1280px;
+        .footer-link:hover::before {
+          opacity: 1;
+          transform: translateX(0);
         }
         .sq-footer-bottom {
-          max-width: 1280px;
+          max-width: 960px;
           margin: 0 auto;
+          border-top: 1px solid var(--border-s);
+          padding-top: 24px;
           display: flex;
           justify-content: space-between;
-          align-items: flex-end;
+          align-items: center;
           flex-wrap: wrap;
-          gap: 24px;
+          gap: 16px;
           font-size: 12px;
           color: var(--text-dim);
         }
-        .sq-footer-branding-info {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          max-width: 440px;
-        }
-        .sq-footer-brand-title {
-          font-size: 16px;
-          font-weight: 700;
-          color: var(--text);
-        }
-        .sq-footer-developed {
-          text-align: right;
-          font-size: 11px;
-        }
-        .sq-footer-developed-text {
-          margin: 0;
-          color: var(--text-dim);
-        }
-
         @media (max-width: 768px) {
-          .sq-footer {
-            padding: 40px 20px 30px;
+          .footer-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
           }
-          .sq-footer-grid {
+        }
+        @media (max-width: 480px) {
+          .footer-grid {
             grid-template-columns: 1fr;
-            gap: 30px;
+            gap: 24px;
           }
           .sq-footer-bottom {
             flex-direction: column;
             align-items: flex-start;
-            gap: 20px;
-          }
-          .sq-footer-developed {
-            text-align: left;
           }
         }
       `}</style>
 
-      <div className="sq-footer-grid">
-        {/* Column 1: Quick Links */}
+      <div className="footer-grid">
+        {/* Column 1 — Brand */}
         <div className="sq-footer-col">
-          <h4 className="sq-footer-title">Quick Links</h4>
-          <Link href="/#features" className="sq-footer-link">Features</Link>
-          <Link href="/#how-it-works" className="sq-footer-link">How It Works</Link>
-          <Link href="/login" className="sq-footer-link">Student Login</Link>
-          <Link href="/register" className="sq-footer-link">Register</Link>
-          <Link href="/faq" className="sq-footer-link">FAQ</Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div className="sq-logo-mark" style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'var(--text)',
+              color: 'var(--bg)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              fontSize: 18
+            }}>
+              Q
+            </div>
+            <span className="sq-logo-name" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
+              SmartQueue
+            </span>
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-sub)', marginBottom: 8 }}>
+            GH Raisoni, Jalgaon
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.6, margin: 0, maxWidth: 280 }}>
+            Modern Queue Management for Educational Institutions. Reduce waiting. Improve student experience. Digitize campus services.
+          </p>
         </div>
 
-        {/* Column 2: Institution */}
+        {/* Column 2 — Navigation */}
+        <div className="sq-footer-col">
+          <h4 className="sq-footer-title">Navigation</h4>
+          <Link href="/faq" className="footer-link">FAQ</Link>
+          <Link href="/register" className="footer-link">Create Account</Link>
+        </div>
+
+        {/* Column 3 — Institution */}
         <div className="sq-footer-col">
           <h4 className="sq-footer-title">Institution</h4>
-          <a href={c.portalUrl} target="_blank" rel="noopener noreferrer" className="sq-footer-link">
-            Official Portal
-          </a>
-          <a href={`mailto:${c.supportEmail}`} className="sq-footer-link">
-            {c.supportEmail}
-          </a>
-          {c.supportPhone && (
-            <a href={`tel:${c.supportPhone.replace(/\s+/g, '')}`} className="sq-footer-link">
-              {c.supportPhone}
-            </a>
-          )}
+          <Link href="/login" className="footer-link">Student Portal</Link>
+          <Link href="/staff/login" className="footer-link">Staff Portal</Link>
+          <a href="#" className="footer-link">Support</a>
+          <a href="#" className="footer-link">Contact</a>
+          <a href="#" className="footer-link">Institutional Mail</a>
         </div>
 
-        {/* Column 3: Legal */}
+        {/* Column 4 — Legal */}
         <div className="sq-footer-col">
           <h4 className="sq-footer-title">Legal</h4>
-          <Link href="/#" className="sq-footer-link">Privacy Policy</Link>
-          <Link href="/#" className="sq-footer-link">Terms of Service</Link>
-          <Link href="/#" className="sq-footer-link">Cookie Policy</Link>
+          <a href="#" className="footer-link">Privacy Policy</a>
+          <a href="#" className="footer-link">Terms of Service</a>
         </div>
       </div>
 
-      <hr className="sq-footer-divider" />
-
       <div className="sq-footer-bottom">
-        <div className="sq-footer-branding-info">
-          <span className="sq-footer-brand-title">SmartQueue</span>
-          <p className="sq-footer-text">
-            Virtual Queue Management System for Educational Institutions
-          </p>
-          <p className="sq-footer-text" style={{ marginTop: 4, fontSize: 11 }}>
-            © {new Date().getFullYear()} SmartQueue. All rights reserved.
-          </p>
-        </div>
-
-        <div className="sq-footer-developed">
-          <p className="sq-footer-developed-text">
-            Developed by the Department of Computer Applications (BCA)
-          </p>
-        </div>
+        <span>
+          © 2026 SmartQueue. Designed for Educational Institutions.
+        </span>
+        <span style={{ textAlign: 'right' }}>
+          Built by the Department of Computer Applications (BCA).
+        </span>
       </div>
     </footer>
   );
 }
+
+export default Footer;

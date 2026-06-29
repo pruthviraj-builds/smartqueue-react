@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { Navbar } from '@/components/layout/Navbar';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getUserDoc } from '@/lib/firebase-helpers';
 
 export default function AdminLoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -24,7 +25,7 @@ export default function AdminLoginPage() {
       const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
       const user = await getUserDoc(cred.user.uid);
       if (user && user.role === 'admin') {
-        window.location.href = '/admin/dashboard';
+        router.push('/admin/dashboard');
       } else {
         setError('Access denied — not an admin account.');
         await signOut(auth);
