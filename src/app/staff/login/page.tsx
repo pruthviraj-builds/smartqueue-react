@@ -1,22 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { auth } from '@/lib/firebase';
 import { Navbar } from '@/components/layout/Navbar';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getUserDoc } from '@/lib/firebase-helpers';
+import ReCAPTCHA from 'react-google-recaptcha';
+
+const RECAPTCHA_SITE_KEY = '6LfCjhwtAAAAAIYD0Xwi0mH-TXbWNR8XrV5zvmcL';
 
 export default function StaffLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
       setError('Please fill in all fields.');
       return;
     }
+
+    // reCAPTCHA v2 check
+    const captchaToken = recaptchaRef.current?.getValue();
+    if (!captchaToken) {
+      setError('Please complete the CAPTCHA verification.');
+      return;
+    }
+
     setError('');
     setLoading(true);
     try {
@@ -27,10 +39,12 @@ export default function StaffLoginPage() {
       } else {
         setError('Access denied — not a staff account.');
         await signOut(auth);
+        recaptchaRef.current?.reset();
         setLoading(false);
       }
     } catch {
       setError('Invalid email or password.');
+      recaptchaRef.current?.reset();
       setLoading(false);
     }
   };
@@ -90,6 +104,14 @@ export default function StaffLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={handleKeyDown}
                 autoComplete="current-password"
+              />
+            </div>
+
+            {/* reCAPTCHA v2 */}
+            <div style={{ marginBottom: 16 }}>
+              <ReCAPTCHA
+               ref={recaptchaRef}
+              sitekey={RECAPTCHA_SITE_KEY}
               />
             </div>
 

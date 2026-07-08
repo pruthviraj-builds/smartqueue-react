@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { Navbar } from '@/components/layout/Navbar';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getUserDoc } from '@/lib/firebase-helpers';
+import ReCAPTCHA from 'react-google-recaptcha';
+
+const RECAPTCHA_SITE_KEY = '6LfCjhwtAAAAAIYD0Xwi0mH-TXbWNR8XrV5zvmcL';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -13,12 +16,21 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
       setError('Please fill in all fields.');
       return;
     }
+
+    // reCAPTCHA v2 check
+    const captchaToken = recaptchaRef.current?.getValue();
+    if (!captchaToken) {
+      setError('Please complete the CAPTCHA verification.');
+      return;
+    }
+
     setError('');
     setLoading(true);
     try {
@@ -29,10 +41,12 @@ export default function AdminLoginPage() {
       } else {
         setError('Access denied — not an admin account.');
         await signOut(auth);
+        recaptchaRef.current?.reset();
         setLoading(false);
       }
     } catch {
       setError('Invalid email or password.');
+      recaptchaRef.current?.reset();
       setLoading(false);
     }
   };
@@ -93,6 +107,14 @@ export default function AdminLoginPage() {
                 onKeyDown={handleKeyDown}
                 autoComplete="current-password"
               />
+            </div>
+
+            {/* reCAPTCHA v2 */}
+            <div style={{ marginBottom: 16 }}>
+              <ReCAPTCHA
+               ref={recaptchaRef}
+              sitekey={RECAPTCHA_SITE_KEY}
+             />
             </div>
 
             {/* Error */}
