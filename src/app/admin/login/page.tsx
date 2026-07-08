@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef,useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { Navbar } from '@/components/layout/Navbar';
@@ -17,6 +17,17 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+  const checkDark = () => {
+    setIsDark(document.documentElement.classList.contains('dark'));
+  };
+  checkDark();
+  const observer = new MutationObserver(checkDark);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  return () => observer.disconnect();
+}, []);
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -112,8 +123,9 @@ export default function AdminLoginPage() {
             {/* reCAPTCHA v2 */}
             <div style={{ marginBottom: 16 }}>
               <ReCAPTCHA
-               ref={recaptchaRef}
+              ref={recaptchaRef}
               sitekey={RECAPTCHA_SITE_KEY}
+              theme={isDark ? 'dark' : 'light'}
              />
             </div>
 
