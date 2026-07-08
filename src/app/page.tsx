@@ -175,7 +175,7 @@ export default function HomePage() {
               <div style={{ textAlign: 'center', marginBottom: 48 }}>
                 <Eyebrow>Why SmartQueue</Eyebrow>
                 <h2 style={{ fontSize: 32, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>
-                  Everything you need, nothing you don&apos;t.
+                  Built for campus queues. Designed for students.
                 </h2>
               </div>
             </FadeInSection>
