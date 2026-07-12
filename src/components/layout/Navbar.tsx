@@ -50,7 +50,7 @@ export function Navbar({
   // Determine logo config based on portal
   let logoMark = 'Q';
   let logoName = 'SmartQueue';
-  let logoSub = 'GH Raisoni, Jalgaon';
+  let logoSub = '';
   let logoHref = '/';
 
   if (portal === 'student' || portal === 'token') {
@@ -180,17 +180,8 @@ export function Navbar({
 
       <div className="sq-nav-actions">
 
-        {/* Public portal CTAs */}
-        {isPublic && (
-          <>
-            <Link href="/login" className="sq-btn sq-btn-ghost sq-btn-sm">
-              Login
-            </Link>
-            <Link href="/register" className="sq-btn sq-btn-primary sq-btn-sm">
-              Create Account
-            </Link>
-          </>
-        )}
+
+
         {/* User Info Capsule */}
         {(isStudent || isStaff || isAdmin) && userName && (
           <div style={{

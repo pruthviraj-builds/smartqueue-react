@@ -83,17 +83,6 @@ export default function HomePage() {
           <div className="hero-grid" aria-hidden="true" />
 
           <div className="sq-fade-in" style={{ position: 'relative', zIndex: 1, animationDelay: '0.05s' }}>
-            {/* Eyebrow */}
-            <p style={{
-              fontSize: 11,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              color: 'var(--text-dim)',
-              marginBottom: 20,
-            }}>
-              GH Raisoni College of Engineering &amp; Management
-            </p>
 
             {/* H1 */}
             <h1 style={{
@@ -141,6 +130,26 @@ export default function HomePage() {
               <span style={{ width: 1, height: 12, background: 'var(--border)', display: 'inline-block' }} />
               <span>{totalWaiting} students waiting</span>
             </div>
+
+            <div style={{ marginTop: 24 }}>
+              <Link
+                href="/register"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '14px 32px',
+                  background: 'var(--accent)',
+                  color: '#fff',
+                  borderRadius: 999,
+                  fontWeight: 600,
+                  fontSize: 15,
+                  textDecoration: 'none',
+                }}
+              >
+                Get Your Token →
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -151,7 +160,6 @@ export default function HomePage() {
           <FadeInSection delay={0.1}>
             <div className="stats-grid">
               {[
-                { num: '500+',      label: 'Students Served', sub: 'Since launch' },
                 { num: '3+',        label: 'Departments',     sub: 'Fees, Admissions, Scholarship' },
                 { num: 'Real-time', label: 'Queue Updates',   sub: 'Zero refresh needed' },
                 { num: 'Free',      label: 'Forever',         sub: 'No hidden charges' },
@@ -761,7 +769,7 @@ export default function HomePage() {
         /* Stats Grid */
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(3, 1fr);
           gap: 1px;
           background: var(--border-s);
           border: 1px solid var(--border-s);

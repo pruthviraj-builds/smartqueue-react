@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'SmartQueue | GH Raisoni College',
-  description: 'Virtual Queue Management System for GH Raisoni College of Engineering and Management, Jalgaon',
+  title: 'SmartQueue',
+  description: 'Skip the queue. Join virtually, track your position live, and get notified when it\'s your turn.',
 };
 
 export default function RootLayout({
