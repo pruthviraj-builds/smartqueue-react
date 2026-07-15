@@ -164,7 +164,7 @@ export function Footer() {
           © 2026 SmartQueue. Designed for Educational Institutions.
         </span>
         <span style={{ textAlign: 'right' }}>
-          Built by the Department of Computer Applications (BCA).
+          Built by 🌍.
         </span>
       </div>
     </footer>
