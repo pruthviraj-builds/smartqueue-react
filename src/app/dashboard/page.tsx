@@ -10,6 +10,14 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
+  Wallet,
+  ClipboardList,
+  GraduationCap,
+  Building2,
+  Ban,
+  Clock
+} from 'lucide-react';
+import {
   collection,
   getDocs,
   doc,
@@ -26,14 +34,7 @@ interface QueueData {
   currentCounter: number;
   lastToken: number;
   waiting: number;
-  icon: string;
 }
-
-const QUEUE_ICONS: Record<string, string> = {
-  fees_counter: '💰',
-  admissions: '📋',
-  scholarship: '🎓',
-};
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function StudentDashboard() {
   const [isOnline, setIsOnline] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Online/offline
+  // Online/offline listener
   useEffect(() => {
     const update = () => setIsOnline(navigator.onLine);
     window.addEventListener('online', update);
@@ -100,7 +101,6 @@ export default function StudentDashboard() {
           currentCounter: (q.currentCounter as number) ?? 0,
           lastToken: (q.lastToken as number) ?? 0,
           waiting: (q.waitingCount as number) ?? 0,
-          icon: QUEUE_ICONS[qDoc.id] ?? '🏢',
         };
       });
       setQueues(results);
@@ -127,7 +127,6 @@ export default function StudentDashboard() {
     setJoiningId(queueId);
 
     try {
-      // Check if already in any active queue (waiting or called)
       const queuesSnap = await getDocs(collection(db, 'queues'));
       for (const qDoc of queuesSnap.docs) {
         for (const status of ['waiting', 'called']) {
@@ -151,11 +150,9 @@ export default function StudentDashboard() {
         }
       }
 
-      // Get student name
       const userDoc = await getDoc(doc(db, 'users', currentUserId));
       const studentName = (userDoc.data()?.name as string) ?? 'Student';
 
-      // Use joinQueue helper
       const { tokenId } = await joinQueueAction(queueId, currentUserId, studentName);
 
       router.push(`/token?queueId=${queueId}&tokenId=${tokenId}`);
@@ -170,9 +167,23 @@ export default function StudentDashboard() {
     router.push('/login');
   };
 
+  // Helper to render the correct Lucide icon based on the department
+  const getQueueIcon = (id: string, active: boolean) => {
+    const color = active ? 'var(--accent)' : 'var(--text-dim)';
+    switch (id) {
+      case 'fees_counter':
+        return <Wallet size={24} color={color} strokeWidth={1.5} />;
+      case 'admissions':
+        return <ClipboardList size={24} color={color} strokeWidth={1.5} />;
+      case 'scholarship':
+        return <GraduationCap size={24} color={color} strokeWidth={1.5} />;
+      default:
+        return <Building2 size={24} color={color} strokeWidth={1.5} />;
+    }
+  };
+
   return (
     <>
-      {/* Offline banner */}
       {!isOnline && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
@@ -186,9 +197,9 @@ export default function StudentDashboard() {
 
       <Navbar portal="student" userName={userName} onLogout={handleLogout} style={{ top: isOnline ? 0 : 40 }} />
 
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '48px 20px' }}>
+      {/* Added bottom padding so the new mobile nav bar doesn't overlap the cards */}
+      <div style={{ maxWidth: 800, margin: '0 auto', padding: '48px 20px 100px 20px' }}>
 
-        {/* Greeting */}
         <div className="sq-fade-in" style={{ marginBottom: 36 }}>
           <p style={{
             fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
@@ -197,17 +208,14 @@ export default function StudentDashboard() {
             Student Dashboard
           </p>
           <h2 style={{ fontSize: 32, fontWeight: 700, color: 'var(--text)' }}>
-            Hello, {firstName || 'there'} 👋
+            Hello, {firstName || 'there'}
           </h2>
           <p style={{ fontSize: 14, color: 'var(--text-sub)', marginTop: 6 }}>
             Select a department to join its virtual queue.
           </p>
         </div>
 
-
-
-        {/* Queue list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
           {error && (
             <ErrorState message={error} onRetry={() => window.location.reload()} />
           )}
@@ -218,93 +226,102 @@ export default function StudentDashboard() {
 
           {!error && !loading && queues.length === 0 && (
             <EmptyState
-              icon="🏢"
               title="No queues available"
-              description="Check back later or contact the admin."
+              description="Check back later or contact the administration."
             />
           )}
 
-          {!error && !loading && queues.map((queue, i) => {
-            const isJoining = joiningId === queue.id;
-            const badgeClass = !queue.isActive
-              ? 'sq-badge-done'
-              : queue.waiting === 0
-              ? 'sq-badge-low'
-              : queue.waiting <= 3
-              ? 'sq-badge-mid'
-              : 'sq-badge-high';
-            const waitText = !queue.isActive
-              ? 'Queue closed'
-              : queue.waiting === 0
-              ? '✓ No wait'
-              : `${queue.waiting} waiting`;
+          {!error && !loading && queues.length > 0 && (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+              gap: '20px' 
+            }}>
+              {queues.map((queue, i) => {
+                const isJoining = joiningId === queue.id;
+                
+                const badgeClass = !queue.isActive
+                  ? 'sq-badge-done'
+                  : queue.waiting === 0
+                  ? 'sq-badge-low'
+                  : queue.waiting <= 3
+                  ? 'sq-badge-mid'
+                  : 'sq-badge-high';
+                
+                const waitText = !queue.isActive
+                  ? 'Closed'
+                  : queue.waiting === 0
+                  ? 'No wait'
+                  : `${queue.waiting} waiting`;
 
-            return (
-              <div
-                key={queue.id}
-                className="sq-card sq-card-lift sq-fade-in"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 16, padding: 20,
-                  animationDelay: `${0.05 + i * 0.07}s`,
-                }}
-              >
-                {/* Icon */}
-                <div style={{
-                  width: 48, height: 48, borderRadius: 12,
-                  background: 'var(--bg)', border: '1px solid var(--border-s)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 22, flexShrink: 0,
-                  opacity: queue.isActive ? 1 : 0.4,
-                }}>
-                  {queue.icon}
-                </div>
-
-                {/* Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontSize: 15, fontWeight: 600,
-                    color: queue.isActive ? 'var(--text)' : 'var(--text-dim)',
-                    marginBottom: 6,
-                  }}>
-                    {queue.deptName}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span className={`sq-badge ${badgeClass}`}>{waitText}</span>
-                    <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
-                      Now serving:{' '}
-                      <span style={{ color: 'var(--text-sub)', fontWeight: 500 }}>
-                        #{queue.currentCounter}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Action */}
-                {queue.isActive ? (
-                  <button
-                    onClick={() => joinQueue(queue.id)}
-                    disabled={isJoining || joiningId !== null || !isOnline}
-                    className="sq-btn sq-btn-primary sq-btn-sm"
+                return (
+                  <div
+                    key={queue.id}
+                    className="sq-card sq-card-lift sq-fade-in"
                     style={{
-                      flexShrink: 0,
-                      opacity: joiningId !== null && !isJoining ? 0.5 : 1,
-                      minWidth: 60,
+                      display: 'flex', flexDirection: 'column', padding: 24,
+                      animationDelay: `${0.05 + i * 0.07}s`,
                     }}
                   >
-                    {isJoining ? '…' : 'Join'}
-                  </button>
-                ) : (
-                  <span className="sq-badge" style={{
-                    background: 'rgba(255,59,48,0.08)', color: '#ff3b30',
-                    border: '1px solid rgba(255,59,48,0.2)',
-                    flexShrink: 0, whiteSpace: 'nowrap',
-                  }}>
-                    🚫 Closed
-                  </span>
-                )}
-              </div>
-            );
-          })}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                      <div style={{
+                        width: 48, height: 48, borderRadius: 12,
+                        background: 'var(--bg)', border: '1px solid var(--border-s)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        opacity: queue.isActive ? 1 : 0.4,
+                      }}>
+                        {getQueueIcon(queue.id, queue.isActive)}
+                      </div>
+                      
+                      <div className={`sq-badge ${badgeClass}`} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {!queue.isActive && <Ban size={12} />}
+                        {queue.isActive && queue.waiting > 0 && <Clock size={12} />}
+                        {waitText}
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: 24, flexGrow: 1 }}>
+                      <h3 style={{
+                        fontSize: 18, fontWeight: 600, margin: '0 0 8px 0',
+                        color: queue.isActive ? 'var(--text)' : 'var(--text-dim)',
+                      }}>
+                        {queue.deptName}
+                      </h3>
+                      <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+                        Currently serving:{' '}
+                        <span style={{ color: 'var(--text)', fontWeight: 600 }}>
+                          #{queue.currentCounter}
+                        </span>
+                      </div>
+                    </div>
+
+                    {queue.isActive ? (
+                      <button
+                        onClick={() => joinQueue(queue.id)}
+                        disabled={isJoining || joiningId !== null || !isOnline}
+                        className="sq-btn sq-btn-primary"
+                        style={{
+                          width: '100%',
+                          opacity: joiningId !== null && !isJoining ? 0.5 : 1,
+                        }}
+                      >
+                        {isJoining ? 'Joining...' : 'Join Virtual Queue'}
+                      </button>
+                    ) : (
+                      <div style={{
+                        width: '100%', padding: '10px', textAlign: 'center',
+                        background: 'rgba(255,59,48,0.05)', color: '#ff3b30',
+                        border: '1px solid rgba(255,59,48,0.1)', borderRadius: '12px',
+                        fontSize: 13, fontWeight: 600
+                      }}>
+                        Counter Closed
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       </div>
