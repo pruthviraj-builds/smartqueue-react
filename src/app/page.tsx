@@ -6,6 +6,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import Footer from '@/components/Footer';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
+import { Activity, BellRing, Bot, Building2 } from 'lucide-react';
 
 /* ─── Types ─── */
 interface QueueData {
@@ -108,8 +109,6 @@ export default function HomePage() {
               SmartQueue replaces physical lines with a virtual token system. Join from your phone, track your position live, and get notified when it&apos;s your turn.
             </p>
 
-            {/* CTA buttons removed */}
-
             {/* Live status pill */}
             <div style={{
               display: 'inline-flex',
@@ -191,25 +190,25 @@ export default function HomePage() {
             <div className="features-grid">
               {[
                 {
-                  icon: '🔴',
+                  icon: <Activity size={24} color="var(--accent)" />,
                   title: 'Real-Time Queue Tracking',
                   desc: "Watch your position update live without refreshing. Powered by Firestore's real-time database.",
                   ai: false,
                 },
                 {
-                  icon: '🔔',
+                  icon: <BellRing size={24} color="var(--accent)" />,
                   title: 'Smart Browser Notifications',
                   desc: "Get alerted automatically when you're 3rd in line and again when you're next. Never miss your turn.",
                   ai: false,
                 },
                 {
-                  icon: '🤖',
+                  icon: <Bot size={24} color="var(--accent)" />,
                   title: 'AI Queue Assistance',
                   desc: 'An intelligent chatbot answers your questions about wait times, departments, and queue status instantly.',
                   ai: true,
                 },
                 {
-                  icon: '🏫',
+                  icon: <Building2 size={24} color="var(--accent)" />,
                   title: 'Built for Campus Services',
                   desc: 'Designed specifically for Fees, Admissions, and Scholarship counters at GH Raisoni College.',
                   ai: false,
@@ -236,7 +235,7 @@ export default function HomePage() {
                   <div style={{
                     width: 48, height: 48, borderRadius: 12,
                     background: 'var(--bg)', border: '1px solid var(--border-s)',
-                    fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                     marginBottom: 16,
                   }}>
                     {card.icon}
