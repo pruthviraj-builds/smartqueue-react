@@ -8,6 +8,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { leaveQueue as leaveQueueAction, getUserDoc, logActivity } from '@/lib/firebase-helpers';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Ticket, Bell, Check, CircleDot, Circle } from 'lucide-react';
 import {
   doc,
   onSnapshot,
@@ -51,16 +52,21 @@ function TokenPageContent() {
 
   const [token, setToken] = useState<TokenData | null>(null);
   const [queue, setQueue] = useState<QueueData | null>(null);
-  const [avgServiceTime, setAvgServiceTime] = useState(5 * 60); // default 5 mins in secs
-  const [aiLabelVisible, setAiLabelVisible] = useState(false);
+  const [avgServiceTime, setAvgServiceTime] = useState(5 * 60);
   const [isOnline, setIsOnline] = useState(true);
   const [notifGranted, setNotifGranted] = useState(false);
+  
+  const [startPosition, setStartPosition] = useState<number | null>(null);
+  const [issueTime, setIssueTime] = useState<string>('--:--');
 
   const lastPositionRef = useRef<number | null>(null);
   const unsubTokenRef = useRef<(() => void) | null>(null);
   const unsubQueueRef = useRef<(() => void) | null>(null);
 
-  // Scan all queues for student's active token
+  useEffect(() => {
+    setIssueTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  }, []);
+
   const searchActiveToken = useCallback(async (uid: string) => {
     try {
       const queuesSnap = await getDocs(collection(db, 'queues'));
@@ -76,7 +82,6 @@ function TokenPageContent() {
           const tDoc = tokenSnap.docs[0];
           const qId = qDoc.id;
           const tId = tDoc.id;
-          // Update URL search parameters without reloading
           const newUrl = `${window.location.pathname}?queueId=${qId}&tokenId=${tId}`;
           window.history.replaceState(null, '', newUrl);
           setActiveQueueId(qId);
@@ -98,10 +103,6 @@ function TokenPageContent() {
     try {
       const permission = await Notification.requestPermission();
       setNotifGranted(permission === 'granted');
-
-      if ('serviceWorker' in navigator) {
-        await navigator.serviceWorker.register('/sw.js');
-      }
     } catch {
       // silently fail
     }
@@ -112,10 +113,9 @@ function TokenPageContent() {
     try {
       if ('serviceWorker' in navigator) {
         const reg = await navigator.serviceWorker.ready;
-        await reg.showNotification(title, {
+       await reg.showNotification(title, {
           body,
-          icon: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
-          badge: 'https://cdn-icons-png.flaticon.com/512/1827/1827392.png',
+          icon: '/icon.png',
           vibrate: [200, 100, 200],
           tag: 'smartqueue-update',
           renotify: true,
@@ -148,7 +148,6 @@ function TokenPageContent() {
       });
       if (count > 0) {
         setAvgServiceTime(Math.round(total / count));
-        setAiLabelVisible(true);
       }
     } catch {
       // use default
@@ -158,7 +157,6 @@ function TokenPageContent() {
   const startListeners = useCallback(() => {
     if (!activeQueueId || !activeTokenId) return;
 
-    // Token listener
     unsubTokenRef.current = onSnapshot(
       doc(db, 'queues', activeQueueId, 'tokens', activeTokenId),
       (snap) => {
@@ -175,7 +173,6 @@ function TokenPageContent() {
       }
     );
 
-    // Queue listener
     unsubQueueRef.current = onSnapshot(
       doc(db, 'queues', activeQueueId),
       (snap) => {
@@ -190,7 +187,6 @@ function TokenPageContent() {
     );
   }, [activeQueueId, activeTokenId, router]);
 
-  // Online/offline
   useEffect(() => {
     const update = () => setIsOnline(navigator.onLine);
     window.addEventListener('online', update);
@@ -202,7 +198,6 @@ function TokenPageContent() {
     };
   }, []);
 
-  // Auth guard + Role check + Active Token Search Fallback
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -235,15 +230,11 @@ function TokenPageContent() {
     return () => unsub();
   }, [searchParams, searchActiveToken, router]);
 
-  // Request notification permission + load avg service time + start listeners
   useEffect(() => {
     if (!activeQueueId || !activeTokenId) return;
-
-    setTimeout(() => {
-      requestNotifications();
-      loadAvgServiceTime();
-      startListeners();
-    }, 0);
+    requestNotifications();
+    loadAvgServiceTime();
+    startListeners();
 
     return () => {
       unsubTokenRef.current?.();
@@ -251,38 +242,30 @@ function TokenPageContent() {
     };
   }, [activeQueueId, activeTokenId, requestNotifications, loadAvgServiceTime, startListeners]);
 
-  // Notification trigger based on position
+  // Derived display values
+  const position = token && queue ? token.tokenNumber - queue.currentCounter : null;
+  const aheadCount = position != null && position > 0 ? position - 1 : 0;
+  const estWait = position != null && position > 0 ? formatWait(position * avgServiceTime) : '0m';
+
+  const isCalled = token?.status === 'called';
+  const isComplete = token?.status === 'complete';
+
   useEffect(() => {
-    if (!token || !queue) return;
-    const position = token.tokenNumber - queue.currentCounter;
+    if (position !== null && startPosition === null && position > 0) {
+      setStartPosition(position);
+    }
+  }, [position, startPosition]);
+
+  useEffect(() => {
+    if (position === null || !queue || !token) return;
     if (position === lastPositionRef.current) return;
     lastPositionRef.current = position;
 
-    if (position === 5) {
-      sendNotification(
-        '⏰ Position Update: 5 People Ahead',
-        `You are 5th in line for ${queue.deptName}.`
-      );
-    }
-    if (position === 3) {
-      sendNotification(
-        '⏰ Almost Your Turn!',
-        `You are 3rd in line for ${queue.deptName}.`
-      );
-    }
-    if (position === 1) {
-      sendNotification(
-        '🔔 You Are Next!',
-        `You are next in line! Head to the ${queue.deptName} counter now.`
-      );
-    }
-    if (token.status === 'called') {
-      sendNotification(
-        '📢 Ticket Called!',
-        `Your token #${token.tokenNumber} has been called for ${queue.deptName}!`
-      );
-    }
-  }, [token, queue, sendNotification]);
+    if (position === 5) sendNotification('Update', `You are 5th in line for ${queue.deptName}.`);
+    if (position === 3) sendNotification('Almost Your Turn!', `You are 3rd in line for ${queue.deptName}.`);
+    if (position === 1) sendNotification('You Are Next!', `Head to the ${queue.deptName} counter now.`);
+    if (token.status === 'called') sendNotification('Ticket Called!', `Your token #${token.tokenNumber} was called!`);
+  }, [position, queue, token, sendNotification]);
 
   const handleLeaveQueue = async () => {
     if (!confirm('Leave the queue? Your token will be cancelled.')) return;
@@ -290,7 +273,7 @@ function TokenPageContent() {
     unsubQueueRef.current?.();
     if (activeQueueId && activeTokenId) {
       if (token) {
-        await logActivity('TOKEN_CANCELLED', `Token #${token.tokenNumber} (${token.studentName}) left the queue "${activeQueueId}".`);
+        await logActivity('TOKEN_CANCELLED', `Token #${token.tokenNumber} left.`);
       }
       await leaveQueueAction(activeQueueId, activeTokenId);
     }
@@ -304,21 +287,34 @@ function TokenPageContent() {
     router.push('/login');
   };
 
+  const progressPercent = startPosition && startPosition > 0 && position !== null 
+    ? Math.max(5, Math.min(100, ((startPosition - position) / startPosition) * 100)) 
+    : isCalled || isComplete ? 100 : 5;
 
-  // Derived display values
-  const position = token && queue ? token.tokenNumber - queue.currentCounter : null;
-  const estWait = position != null && position > 0
-    ? formatWait(position * avgServiceTime)
-    : position === 0 || position != null && position <= 0
-    ? '0m'
-    : '--';
-
-  const isCalled = token?.status === 'called';
-  const isComplete = token?.status === 'complete';
+  // Determine Notification Mockup Text based on position
+  let alertTitle = "Tracking position...";
+  let alertBody = `We will notify you when you are 5th in line.`;
+  let alertColor = "var(--text)";
+  
+  if (aheadCount <= 5 && aheadCount > 3) {
+    alertTitle = "5 people ahead";
+    alertBody = `Token #${token?.tokenNumber} — you are getting closer.`;
+  } else if (aheadCount <= 3 && aheadCount > 0) {
+    alertTitle = "3 people ahead";
+    alertBody = `Token #${token?.tokenNumber} — almost there!`;
+  } else if (aheadCount === 0) {
+    alertTitle = "You're next!";
+    alertBody = `Token #${token?.tokenNumber} — head to ${queue?.deptName} now.`;
+    alertColor = "var(--accent)";
+  } else if (isCalled) {
+    alertTitle = "Ticket Called!";
+    alertBody = `Please approach the counter immediately.`;
+    alertColor = "#34c759";
+  }
 
   if (findingToken) {
     return (
-      <div style={{ maxWidth: 480, margin: '0 auto', padding: '100px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', padding: '100px 20px' }}>
         <LoadingState type="card" count={1} />
       </div>
     );
@@ -328,11 +324,10 @@ function TokenPageContent() {
     return (
       <>
         <Navbar portal="token" onLogout={handleLogout} />
-        <div style={{ maxWidth: 480, margin: '0 auto', padding: '100px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ maxWidth: 480, margin: '0 auto', padding: '100px 20px' }}>
           <EmptyState
-            icon="🎫"
             title="No Active Token"
-            description="You do not have an active queue token at the moment. Join a department queue from the dashboard to get a token."
+            description="You do not have an active queue token. Join a queue from the dashboard."
             actionHref="/dashboard"
             actionLabel="Go to Dashboard"
           />
@@ -343,12 +338,10 @@ function TokenPageContent() {
 
   return (
     <>
-      {/* Offline banner */}
       {!isOnline && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-          background: '#ff3b30', color: '#fff',
-          textAlign: 'center', padding: '10px',
+          background: '#ff3b30', color: '#fff', textAlign: 'center', padding: '10px',
           fontSize: 13, fontWeight: 600,
         }}>
           * You are offline — showing last known data.
@@ -357,143 +350,180 @@ function TokenPageContent() {
 
       <Navbar portal="token" onLogout={handleLogout} style={{ top: isOnline ? 0 : 40 }} />
 
-      <div style={{
-        maxWidth: 480,
-        margin: '0 auto',
-        padding: '40px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 14,
-      }}>
-
-        {/* Token card */}
-        <div className="sq-card sq-fade-in" style={{ textAlign: 'center', padding: '40px 28px' }}>
-          <div style={{
-            fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
-            letterSpacing: '0.1em', color: 'var(--text-dim)', marginBottom: 28,
-          }}>
-            Your Token Number
-          </div>
-
-          {/* Token ring */}
-          <div
-            className={`sq-token-ring${isCalled ? ' called' : ''}`}
-            style={{ transition: 'all 0.4s' }}
-          >
-            <span className="sq-token-num">
-              {token ? token.tokenNumber : '--'}
-            </span>
-          </div>
-
-          {/* Department name */}
-          <div style={{
-            fontSize: 14, color: 'var(--text-sub)',
-            margin: '16px 0 20px',
-          }}>
-            {queue?.deptName ?? ''}
-          </div>
-
-          {/* Status badge */}
-          {isComplete ? (
-            <span className="sq-badge sq-badge-done" style={{ margin: '0 auto' }}>
-              ✓ Service Complete — Thank you!
-            </span>
-          ) : isCalled ? (
-            <span className="sq-badge sq-badge-called" style={{ margin: '0 auto', display: 'inline-flex', gap: 6 }}>
-              <span style={{
-                width: 6, height: 6, borderRadius: '50%',
-                background: 'currentColor', display: 'inline-block',
-                animation: 'livePulse 1s infinite',
-              }} />
-              🔔 Your Turn! Head to the counter.
-            </span>
-          ) : (
-            <span className="sq-badge sq-badge-waiting" style={{ margin: '0 auto', display: 'inline-flex', gap: 6 }}>
-              <span style={{
-                width: 6, height: 6, borderRadius: '50%',
-                background: 'currentColor', opacity: 0.7,
-                display: 'inline-block', animation: 'livePulse 2s infinite',
-              }} />
-              Waiting in queue
-            </span>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="sq-card sq-fade-in" style={{ animationDelay: '0.1s' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            <div className="sq-stat">
-              <div className="sq-stat-label">Now Serving</div>
-              <div className="sq-stat-value">
-                {queue ? queue.currentCounter : '--'}
-              </div>
-            </div>
-            <div className="sq-stat">
-              <div className="sq-stat-label">Your Position</div>
-              <div className="sq-stat-value">
-                {position != null
-                  ? position > 0
-                    ? position
-                    : '🎉'
-                  : '--'}
-              </div>
-            </div>
-            <div className="sq-stat">
-              <div className="sq-stat-label">Est. Wait</div>
-              <div className="sq-stat-value" style={{ fontSize: 24 }}>
-                {estWait}
-              </div>
-            </div>
-          </div>
-
-          {aiLabelVisible && (
-            <p style={{
-              textAlign: 'center', fontSize: 11,
-              color: 'var(--text-dim)', marginTop: 14,
-            }}>
-              🤖 Wait time based on real service history
-            </p>
-          )}
-        </div>
-
-        {/* Info box */}
-        <div className="sq-fade-in" style={{
-          display: 'flex', alignItems: 'flex-start', gap: 12,
-          padding: 16, background: 'var(--bg)',
-          border: '1px solid var(--border-s)', borderRadius: 14,
-          fontSize: 13, color: 'var(--text-sub)',
-          animationDelay: '0.15s',
+      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px 120px 20px' }}>
+        
+        {/* 3-Card Grid Layout */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+          gap: '24px',
+          marginBottom: '32px'
         }}>
-          <span style={{ fontSize: 20, flexShrink: 0 }}>💡</span>
-          <span>You can close this page and come back — your token is saved.</span>
+
+          {/* CARD 1: YOUR TICKET */}
+          <div className="sq-card sq-fade-in" style={{ padding: '32px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 700, letterSpacing: '0.08em', marginBottom: 16 }}>
+              YOUR TICKET
+            </div>
+            <div style={{ fontSize: 72, fontWeight: 800, color: 'var(--accent)', lineHeight: 1, letterSpacing: '-0.02em', marginBottom: 8 }}>
+              #{token?.tokenNumber ?? '--'}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-sub)', fontWeight: 500 }}>
+              {queue?.deptName ?? 'Loading...'} · Est. {estWait}
+            </div>
+
+            <div style={{ borderTop: '2px dashed var(--border)', margin: '24px 0' }} />
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 'auto' }}>
+              <div style={{ background: 'var(--bg)', padding: '16px 12px', borderRadius: '12px', border: '1px solid var(--border-s)' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.05em' }}>ISSUED</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>{issueTime}</div>
+              </div>
+              <div style={{ background: 'var(--bg)', padding: '16px 12px', borderRadius: '12px', border: '1px solid var(--border-s)' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.05em' }}>AHEAD</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>
+                  {isCalled || isComplete ? '0' : aheadCount} People
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CARD 2: LIVE QUEUE PROGRESS */}
+          <div className="sq-card sq-fade-in" style={{ animationDelay: '0.1s', padding: '32px 24px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-dim)' }}>
+                LIVE QUEUE<br/>PROGRESS
+              </span>
+              {isCalled ? (
+                 <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
+                   <Bell size={12} className="sq-bounce" /> CALLED
+                 </span>
+              ) : (
+                 <span style={{ color: '#34c759', fontWeight: 600, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
+                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#34c759', animation: 'pulse 2s infinite' }} /> LIVE
+                 </span>
+              )}
+            </div>
+
+            <div style={{ height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden', marginBottom: 12 }}>
+              <div style={{ 
+                height: '100%', 
+                background: 'linear-gradient(90deg, var(--accent), #5ac8ff)', 
+                width: `${progressPercent}%`, 
+                transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)',
+                borderRadius: 4
+              }} />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 32 }}>
+              <span style={{ color: 'var(--text-sub)' }}>Currently:<br/><strong style={{ color: 'var(--text)', fontSize: 15 }}>#{queue?.currentCounter ?? '--'}</strong></span>
+              <span style={{ color: 'var(--text-sub)', textAlign: 'right' }}>Your turn:<br/><strong style={{ color: 'var(--accent)', fontSize: 15 }}>#{token?.tokenNumber ?? '--'}</strong></span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 'auto' }}>
+              <div style={{ textAlign: 'center', padding: '20px 16px', background: 'var(--bg)', borderRadius: '12px', border: '1px solid var(--border-s)' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.05em' }}>AHEAD</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>
+                  {isCalled || isComplete ? '0' : aheadCount}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '20px 16px', background: 'var(--bg)', borderRadius: '12px', border: '1px solid var(--border-s)' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.05em' }}>WAIT</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent)', marginTop: 4 }}>
+                  {isCalled || isComplete ? '0m' : `~${estWait}`}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CARD 3: ALERT MILESTONES */}
+          <div className="sq-card sq-fade-in" style={{ animationDelay: '0.2s', padding: '32px 24px', display: 'flex', flexDirection: 'column' }}>
+            
+            {/* Dynamic Notification Mockup */}
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border-s)', borderRadius: '16px', padding: '16px', marginBottom: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+               <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: '10px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'white' }}>
+                     <Bell size={20} />
+                  </div>
+                  <div>
+                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>SmartQueue Alert</div>
+                     <div style={{ fontSize: 12, color: alertColor, fontWeight: 600, marginTop: 2 }}>{alertTitle}</div>
+                     <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2, lineHeight: 1.4 }}>{alertBody}</div>
+                  </div>
+               </div>
+            </div>
+
+            <div style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: 16 }}>
+              ALERT MILESTONES
+            </div>
+
+            {/* Checklists */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              
+              {/* 5 Ahead */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border-s)' }}>
+                {aheadCount <= 5 ? (
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#34c759', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <Check size={12} strokeWidth={3} />
+                  </div>
+                ) : (
+                  <Circle size={20} color="var(--border)" />
+                )}
+                <span style={{ fontSize: 14, color: 'var(--text-sub)' }}>5 ahead</span>
+              </div>
+
+              {/* 3 Ahead */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border-s)' }}>
+                {aheadCount <= 3 ? (
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#34c759', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <Check size={12} strokeWidth={3} />
+                  </div>
+                ) : (
+                  <Circle size={20} color="var(--border)" />
+                )}
+                <span style={{ fontSize: 14, color: 'var(--text-sub)' }}>3 ahead</span>
+              </div>
+
+              {/* You're next! */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
+                {aheadCount === 0 ? (
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <Check size={12} strokeWidth={3} />
+                  </div>
+                ) : aheadCount <= 1 ? (
+                  <CircleDot size={20} color="var(--accent)" />
+                ) : (
+                  <Circle size={20} color="var(--border)" />
+                )}
+                <span style={{ fontSize: 14, color: aheadCount <= 1 ? 'var(--accent)' : 'var(--text-sub)', fontWeight: aheadCount <= 1 ? 600 : 400 }}>You're next!</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Leave queue — hide when complete */}
-        {!isComplete && (
-          <button
-            onClick={handleLeaveQueue}
-            disabled={!isOnline}
-            className="sq-btn sq-btn-danger sq-btn-full sq-btn-lg sq-fade-in"
-            style={{ animationDelay: '0.2s', opacity: !isOnline ? 0.5 : 1 }}
-          >
-            Leave Queue
-          </button>
-        )}
+        {/* Action Buttons Container */}
+        <div style={{ display: 'flex', gap: '16px', maxWidth: '400px', margin: '0 auto' }}>
+          {!isComplete && (
+            <button
+              onClick={handleLeaveQueue}
+              disabled={!isOnline}
+              className="sq-btn sq-btn-danger sq-btn-lg sq-fade-in"
+              style={{ flex: 1, animationDelay: '0.3s', opacity: !isOnline ? 0.5 : 1 }}
+            >
+              Cancel Ticket
+            </button>
+          )}
 
-        {/* Back to dashboard when complete */}
-        {isComplete && (
-          <a
-            href="/dashboard"
-            className="sq-btn sq-btn-primary sq-btn-full sq-btn-lg sq-fade-in"
-            style={{ animationDelay: '0.2s', textAlign: 'center' }}
-          >
-            Back to Dashboard
-          </a>
-        )}
-
-        <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-dim)' }}>
-          🔴 Updates automatically in real-time
-        </p>
+          {isComplete && (
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="sq-btn sq-btn-primary sq-btn-lg sq-fade-in"
+              style={{ flex: 1, animationDelay: '0.3s' }}
+            >
+              Back to Dashboard
+            </button>
+          )}
+        </div>
 
       </div>
     </>
