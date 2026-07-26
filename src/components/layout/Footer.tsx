@@ -154,8 +154,9 @@ export function Footer() {
         {/* Column 4 — Legal */}
         <div className="sq-footer-col">
           <h4 className="sq-footer-title">Legal</h4>
-          <a href="#" className="footer-link">Privacy Policy</a>
-          <a href="#" className="footer-link">Terms of Service</a>
+          <a href="privacy" className="footer-link">Privacy Policy</a>
+          <a href="terms" className="footer-link">Terms of Service</a>
+          <a href="cookies" className="footer-link">Cookie Policy</a>
         </div>
       </div>
 
