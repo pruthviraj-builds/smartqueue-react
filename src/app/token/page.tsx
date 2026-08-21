@@ -361,7 +361,7 @@ function TokenPageContent() {
         }}>
 
           {/* CARD 1: YOUR TICKET */}
-          <div className="sq-card sq-fade-in" style={{ padding: '32px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
+          <div className="sq-card sq-fade-in" style={{ padding: '32px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', borderRadius: '16px' }}>
             <div style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 700, letterSpacing: '0.08em', marginBottom: 16 }}>
               YOUR TICKET
             </div>
@@ -375,11 +375,11 @@ function TokenPageContent() {
             <div style={{ borderTop: '2px dashed var(--border)', margin: '24px 0' }} />
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 'auto' }}>
-              <div style={{ background: 'var(--bg)', padding: '16px 12px', borderRadius: '12px', border: '1px solid var(--border-s)' }}>
+              <div style={{ background: 'var(--bg)', padding: '16px 12px', borderRadius: '12px', border: '1px solid var(--border-s)', textAlign: 'center' }}>
                 <div style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.05em' }}>ISSUED</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>{issueTime}</div>
               </div>
-              <div style={{ background: 'var(--bg)', padding: '16px 12px', borderRadius: '12px', border: '1px solid var(--border-s)' }}>
+              <div style={{ background: 'var(--bg)', padding: '16px 12px', borderRadius: '12px', border: '1px solid var(--border-s)', textAlign: 'center' }}>
                 <div style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.05em' }}>AHEAD</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>
                   {isCalled || isComplete ? '0' : aheadCount} People
@@ -389,23 +389,23 @@ function TokenPageContent() {
           </div>
 
           {/* CARD 2: LIVE QUEUE PROGRESS */}
-          <div className="sq-card sq-fade-in" style={{ animationDelay: '0.1s', padding: '32px 24px', display: 'flex', flexDirection: 'column' }}>
+          <div className="sq-card sq-fade-in" style={{ animationDelay: '0.1s', padding: '32px 24px', display: 'flex', flexDirection: 'column', borderRadius: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-dim)' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-dim)', lineHeight: 1.3 }}>
                 LIVE QUEUE<br/>PROGRESS
               </span>
               {isCalled ? (
-                 <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
+                 <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(99,102,241,0.1)', padding: '4px 10px', borderRadius: 999 }}>
                    <Bell size={12} className="sq-bounce" /> CALLED
                  </span>
               ) : (
-                 <span style={{ color: '#34c759', fontWeight: 600, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
-                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#34c759', animation: 'pulse 2s infinite' }} /> LIVE
+                 <span style={{ color: '#34c759', fontWeight: 600, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(52,199,89,0.1)', padding: '4px 10px', borderRadius: 999 }}>
+                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34c759', animation: 'pulse 2s infinite' }} /> LIVE
                  </span>
               )}
             </div>
 
-            <div style={{ height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden', marginBottom: 12 }}>
+            <div style={{ height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
               <div style={{ 
                 height: '100%', 
                 background: 'linear-gradient(90deg, var(--accent), #5ac8ff)', 
@@ -415,7 +415,7 @@ function TokenPageContent() {
               }} />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 24 }}>
               <span style={{ color: 'var(--text-sub)' }}>Currently:<br/><strong style={{ color: 'var(--text)', fontSize: 15 }}>#{queue?.currentCounter ?? '--'}</strong></span>
               <span style={{ color: 'var(--text-sub)', textAlign: 'right' }}>Your turn:<br/><strong style={{ color: 'var(--accent)', fontSize: 15 }}>#{token?.tokenNumber ?? '--'}</strong></span>
             </div>
@@ -437,31 +437,31 @@ function TokenPageContent() {
           </div>
 
           {/* CARD 3: ALERT MILESTONES */}
-          <div className="sq-card sq-fade-in" style={{ animationDelay: '0.2s', padding: '32px 24px', display: 'flex', flexDirection: 'column' }}>
+          <div className="sq-card sq-fade-in" style={{ animationDelay: '0.2s', padding: '32px 24px', display: 'flex', flexDirection: 'column', borderRadius: '16px' }}>
             
             {/* Dynamic Notification Mockup */}
-            <div style={{ background: 'var(--bg)', border: '1px solid var(--border-s)', borderRadius: '16px', padding: '16px', marginBottom: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-               <div style={{ display: 'flex', gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: '10px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'white' }}>
-                     <Bell size={20} />
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border-s)', borderRadius: '14px', padding: '14px 16px', marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '10px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'white' }}>
+                     <Bell size={18} />
                   </div>
                   <div>
-                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>SmartQueue Alert</div>
+                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>SmartQueue Alert</div>
                      <div style={{ fontSize: 12, color: alertColor, fontWeight: 600, marginTop: 2 }}>{alertTitle}</div>
-                     <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2, lineHeight: 1.4 }}>{alertBody}</div>
+                     <div style={{ fontSize: 11, color: 'var(--text-sub)', marginTop: 2, lineHeight: 1.4 }}>{alertBody}</div>
                   </div>
                </div>
             </div>
 
-            <div style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: 16 }}>
+            <div style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: 14 }}>
               ALERT MILESTONES
             </div>
 
             {/* Checklists */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 'auto' }}>
               
               {/* 5 Ahead */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border-s)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border-s)' }}>
                 {aheadCount <= 5 ? (
                   <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#34c759', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                     <Check size={12} strokeWidth={3} />
@@ -469,11 +469,11 @@ function TokenPageContent() {
                 ) : (
                   <Circle size={20} color="var(--border)" />
                 )}
-                <span style={{ fontSize: 14, color: 'var(--text-sub)' }}>5 ahead</span>
+                <span style={{ fontSize: 13, color: 'var(--text-sub)' }}>5 ahead</span>
               </div>
 
               {/* 3 Ahead */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border-s)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border-s)' }}>
                 {aheadCount <= 3 ? (
                   <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#34c759', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                     <Check size={12} strokeWidth={3} />
@@ -481,11 +481,11 @@ function TokenPageContent() {
                 ) : (
                   <Circle size={20} color="var(--border)" />
                 )}
-                <span style={{ fontSize: 14, color: 'var(--text-sub)' }}>3 ahead</span>
+                <span style={{ fontSize: 13, color: 'var(--text-sub)' }}>3 ahead</span>
               </div>
 
               {/* You're next! */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
                 {aheadCount === 0 ? (
                   <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                     <Check size={12} strokeWidth={3} />
@@ -495,7 +495,7 @@ function TokenPageContent() {
                 ) : (
                   <Circle size={20} color="var(--border)" />
                 )}
-                <span style={{ fontSize: 14, color: aheadCount <= 1 ? 'var(--accent)' : 'var(--text-sub)', fontWeight: aheadCount <= 1 ? 600 : 400 }}>You're next!</span>
+                <span style={{ fontSize: 13, color: aheadCount <= 1 ? 'var(--accent)' : 'var(--text-sub)', fontWeight: aheadCount <= 1 ? 600 : 400 }}>You're next!</span>
               </div>
             </div>
           </div>
@@ -503,7 +503,7 @@ function TokenPageContent() {
 
         {/* Action Buttons Container */}
         <div style={{ display: 'flex', gap: '16px', maxWidth: '400px', margin: '0 auto' }}>
-          {!isComplete && (
+          {!isComplete && !isCalled && (
             <button
               onClick={handleLeaveQueue}
               disabled={!isOnline}
