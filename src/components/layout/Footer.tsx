@@ -157,6 +157,7 @@ export function Footer() {
           <a href="privacy" className="footer-link">Privacy Policy</a>
           <a href="terms" className="footer-link">Terms of Service</a>
           <a href="cookies" className="footer-link">Cookie Policy</a>
+          <Link href="/about" className="footer-link">About</Link>
         </div>
       </div>
 
