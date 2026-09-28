@@ -3,7 +3,7 @@ import { FAQContent } from './FAQContent';
 
 export const metadata: Metadata = {
   title: 'FAQ & Help Center | SmartQueue',
-  description: 'Find answers to frequently asked questions about the virtual queue system at GH Raisoni College of Engineering & Management, Jalgaon.',
+  description: 'Find answers to frequently asked questions about the SmartQueue virtual queue management system.',
 };
 
 export default function FAQPage() {

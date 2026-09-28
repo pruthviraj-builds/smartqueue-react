@@ -1,9 +1,25 @@
 'use client';
 
 import React, { useState, useDeferredValue } from 'react';
+import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  Search,
+  X,
+  ChevronDown,
+  Sparkles,
+  Ticket,
+  Clock,
+  Bell,
+  ShieldCheck,
+  Bot,
+  Mail,
+  HelpCircle,
+  Activity,
+  CheckCircle2,
+} from 'lucide-react';
 
 interface FAQItem {
   id: string;
@@ -16,112 +32,151 @@ const FAQ_DATA: FAQItem[] = [
   // General Questions
   {
     id: 'gen-1',
-    category: 'General Questions',
+    category: 'General',
     q: 'What is SmartQueue?',
-    a: 'SmartQueue is a virtual queue management platform designed for educational institutions. It allows students to join service lines digitally via their mobile devices or computer, eliminating physical queues and lobby congestion.'
+    a: 'SmartQueue is a high-performance virtual queue management platform designed for colleges and institutions. It allows students to join service lines digitally via their mobile devices or computer, eliminating physical lines and lobby congestion.'
   },
   {
     id: 'gen-2',
-    category: 'General Questions',
+    category: 'General',
     q: 'Who can use this platform?',
-    a: 'The service is available to all registered students, faculty, staff, and office administrators of GH Raisoni College of Engineering & Management, Jalgaon.'
+    a: 'The service is available to all registered students, faculty, staff, and office administrators.'
   },
   {
     id: 'gen-3',
-    category: 'General Questions',
+    category: 'General',
     q: 'Is a mobile app installation required?',
     a: 'No. SmartQueue is a responsive web application. You can access it on any smartphone, tablet, or desktop web browser without needing to download anything from an app store.'
   },
   // Student Questions
   {
     id: 'stu-1',
-    category: 'Student Questions',
+    category: 'Student Flow',
     q: 'How do I get a queue token?',
-    a: 'Log in using your student credentials, navigate to your Student Dashboard, select the department counter you wish to visit (such as Accounts or Registrar), and click "Join Queue" to instantly issue your virtual token.'
+    a: 'Log in using your student credentials, navigate to your Student Dashboard, select the department counter you wish to visit (such as Fees, Admissions, or Scholarship), and click "Join Queue" to instantly issue your virtual token.'
   },
   {
     id: 'stu-2',
-    category: 'Student Questions',
+    category: 'Student Flow',
     q: 'Can I cancel my token if I change my mind?',
-    a: 'Yes. If you no longer require counter service, you can cancel your token at any time by clicking "Leave Queue" on your active token status page. This instantly removes you from the queue and speeds up waiting times for others.'
+    a: 'Yes. If you no longer require counter service, you can cancel your token while waiting by clicking "Cancel Ticket" on your token status page. This instantly removes you from the queue and speeds up waiting times for others.'
   },
   {
     id: 'stu-3',
-    category: 'Student Questions',
-    q: 'What happens if I miss my turn?',
-    a: 'If your token is called by a staff member and you are not present at the counter, they may put your ticket on hold or mark it completed. We recommend monitoring your live dashboard and keeping an eye on your estimated call time.'
+    category: 'Student Flow',
+    q: 'Can I cancel my ticket once my number is called?',
+    a: 'No. Once staff calls your ticket to the counter, the cancel button is hidden to ensure uninterrupted counter operations. Please proceed directly to the counter.'
   },
   // Queue Tracking
   {
     id: 'track-1',
-    category: 'Queue Tracking',
+    category: 'Live Tracking',
     q: 'Do I need to wait in the department lobby?',
-    a: 'No. Once you issue a virtual token, you are free to wait anywhere on campus—like the canteen, library, or campus lawns. The dashboard updates live in real-time, allowing you to walk over only when your turn is close.'
+    a: 'No. Once you issue a virtual token, you are free to wait anywhere on campus—like the canteen, library, or campus lawns. The dashboard updates in real-time, allowing you to walk over only when your turn is close.'
   },
   {
     id: 'track-2',
-    category: 'Queue Tracking',
+    category: 'Live Tracking',
     q: 'How is the estimated wait time calculated?',
-    a: 'Estimated wait times are computed dynamically based on the number of people ahead of you in line, the number of active counters, and the average service duration of recently completed tokens.'
+    a: 'Estimated wait times are computed dynamically based on the number of people ahead of you in line and the average service duration of recently completed tokens.'
   },
   {
     id: 'track-3',
-    category: 'Queue Tracking',
+    category: 'Live Tracking',
     q: 'Why does my estimated wait time fluctuate?',
-    a: 'Since wait times are updated live, they may decrease if a counter works faster or if students ahead of you cancel their tokens. They can also increase slightly if a student ahead of you has a complex issue that takes longer to resolve.'
+    a: 'Since wait times update live, they may decrease if counters work faster or if students ahead cancel their tokens. They can also adjust slightly if a session ahead requires extra resolution time.'
   },
   // Notifications
   {
     id: 'notif-1',
     category: 'Notifications',
     q: 'Can I get browser notifications on my phone?',
-    a: 'Yes. Upon joining a queue, the application will prompt you for browser notification permissions. If you allow them, you will receive push alert notifications when your token is near the front of the queue.'
+    a: 'Yes. Upon joining a queue, the application will prompt you for browser notification permissions. If you allow them, you will receive push alert notifications when you are 5th, 3rd, and next in line.'
   },
   {
     id: 'notif-2',
     category: 'Notifications',
     q: 'What happens if I close my tracking browser tab?',
-    a: 'Your token position is saved securely on our servers, so you will not lose your place. However, closing the browser tab prevents the live audio cues and desktop notifications from alerting you when you are called. We recommend keeping the tab open in the background.'
+    a: 'Your token position is saved securely on our cloud servers, so you will not lose your place. However, keeping the tab open ensures audio cues and desktop notifications alert you the moment you are called.'
   },
-  // Technical Help
+  // Security & Tech
   {
     id: 'tech-1',
-    category: 'Technical Help',
+    category: 'Security & Tech',
     q: 'What if I lose internet connection while waiting?',
-    a: 'If you go offline, a connectivity warning will be displayed on the page. Your place in the queue remains perfectly safe on the server. The live status feed will automatically resume once your internet reconnects.'
+    a: 'If you go offline, a connectivity warning will be displayed on the page. Your place in the queue remains safe on the server. The live status feed will automatically resume once your internet reconnects.'
   },
   {
     id: 'tech-2',
-    category: 'Technical Help',
-    q: 'How do I report system bugs or technical issues?',
-    a: 'If you run into any system error, please contact our administrative IT desk or write to us at info.jalgaon@raisoni.net with a description of the problem and your student details.'
+    category: 'Security & Tech',
+    q: 'What is Campus Geofencing?',
+    a: 'Campus Geofencing is an optional security safeguard that verifies physical proximity to campus before allowing queue access, preventing remote hoarding of tokens.'
+  },
+  {
+    id: 'tech-3',
+    category: 'Security & Tech',
+    q: 'How does the AI Assistant work?',
+    a: 'The built-in AI Assistant is powered by the Groq LPU inference engine, answering questions in sub-second speed regarding queue procedures and departmental guidelines.'
   }
+];
+
+const TOPIC_CARDS = [
+  {
+    category: 'Student Flow',
+    icon: Ticket,
+    color: '#0071e3',
+    title: 'Student Queue Flow',
+    desc: 'Joining departments, issuing tokens, and cancellation rules.',
+  },
+  {
+    category: 'Live Tracking',
+    icon: Activity,
+    color: '#34c759',
+    title: 'Live Tracking & Wait Time',
+    desc: 'Realtime snapshot sync, dynamic estimation, and queue countdown.',
+  },
+  {
+    category: 'Notifications',
+    icon: Bell,
+    color: '#ff9500',
+    title: 'Push Alerts & Milestones',
+    desc: 'Browser notification triggers when 5th, 3rd, and next in line.',
+  },
+  {
+    category: 'Security & Tech',
+    icon: ShieldCheck,
+    color: '#af52de',
+    title: 'Security & Geofencing',
+    desc: 'Google reCAPTCHA, campus geofencing, and role enforcement.',
+  },
 ];
 
 const CATEGORIES = [
   'All',
-  'General Questions',
-  'Student Questions',
-  'Queue Tracking',
+  'General',
+  'Student Flow',
+  'Live Tracking',
   'Notifications',
-  'Technical Help'
+  'Security & Tech',
 ];
 
 export function FAQContent() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [openFaqs, setOpenFaqs] = useState<Record<string, boolean>>({});
+  const [openFaqs, setOpenFaqs] = useState<Record<string, boolean>>({
+    'gen-1': true,
+    'stu-1': true,
+  });
 
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
   const toggleFaq = (id: string) => {
     setOpenFaqs((prev) => ({
       ...prev,
-      [id]: !prev[id]
+      [id]: !prev[id],
     }));
   };
 
-  // Filter FAQs based on selected category and deferred search query
   const filteredFaqs = FAQ_DATA.filter((faq) => {
     const matchesCategory = selectedCategory === 'All' || faq.category === selectedCategory;
     const matchesSearch =
@@ -130,7 +185,6 @@ export function FAQContent() {
     return matchesCategory && matchesSearch;
   });
 
-  // Calculate item counts for sidebar categories
   const getCategoryCount = (category: string) => {
     if (category === 'All') return FAQ_DATA.length;
     return FAQ_DATA.filter((faq) => faq.category === category).length;
@@ -138,460 +192,426 @@ export function FAQContent() {
 
   return (
     <>
-      {/* Background Orbs */}
-      <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div className="sq-gradient-bg" />
-      </div>
+      <Navbar portal="home" />
 
-      <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <Navbar portal="home" />
+      <main style={{ maxWidth: 960, margin: '0 auto', padding: '60px 20px 100px 20px' }}>
 
-        {/* CSS styles */}
-        <style>{`
-          .faq-filter-row::-webkit-scrollbar {
-            display: none;
-          }
-
-          .faq-hero {
-            max-width: 840px;
-            margin: 0 auto;
-            padding: 80px 20px 40px;
-            text-align: center;
-          }
-          .faq-title {
-            font-size: clamp(32px, 5vw, 48px);
-            font-weight: 800;
-            color: var(--text);
-            letter-spacing: -0.02em;
-            margin-bottom: 12px;
-          }
-          .faq-subtitle {
-            font-size: clamp(14px, 2vw, 16px);
-            color: var(--text-sub);
-            max-width: 500px;
-            margin: 0 auto;
-            line-height: 1.5;
-          }
+        {/* Hero Header with Glow */}
+        <section className="sq-fade-in" style={{ textAlign: 'center', marginBottom: 52, position: 'relative' }}>
           
-          .search-wrapper {
-            position: relative;
-            max-width: 560px;
-            margin: 0 auto 30px;
-            padding: 0 20px;
-          }
-          .search-input-container {
-            position: relative;
-            width: 100%;
-          }
-          .search-input {
-            width: 100%;
-            padding: 14px 18px 14px 44px;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text);
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            outline: none;
-            transition: all 0.25s var(--ease-out-expo);
-            box-shadow: var(--shadow-card);
-            font-family: inherit;
-          }
-          .search-input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
-          }
-          .search-icon {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-dim);
-            pointer-events: none;
-          }
-          .clear-button {
-            position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--text-dim);
-            cursor: pointer;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 6px;
-            border-radius: 50%;
-            transition: background 0.2s, color 0.2s;
-          }
-          .clear-button:hover {
-            background: var(--border);
-            color: var(--text);
-          }
+          {/* Ambient Glow */}
+          <div style={{
+            position: 'absolute',
+            top: -20,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 340,
+            height: 180,
+            background: 'radial-gradient(circle, rgba(0,113,227,0.18) 0%, rgba(0,0,0,0) 70%)',
+            filter: 'blur(40px)',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }} />
 
-          .faq-container {
-            display: grid;
-            grid-template-columns: 220px 1fr;
-            gap: 40px;
-            max-width: 880px;
-            width: 100%;
-            margin: 0 auto auto;
-            padding: 0 20px 40px;
-            box-sizing: border-box;
-          }
-          
-          .faq-sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            position: sticky;
-            top: 90px;
-            height: fit-content;
-            z-index: 5;
-          }
-          .faq-category-btn {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 550;
-            color: var(--text-sub);
-            background: transparent;
-            border: 1px solid transparent;
-            cursor: pointer;
-            text-align: left;
-            transition: all 0.2s ease;
-            font-family: inherit;
-          }
-          .faq-category-btn:hover {
-            background: var(--bg-card);
-            color: var(--text);
-          }
-          .faq-category-btn.active {
-            background: var(--bg-card);
-            color: var(--accent);
-            border-color: var(--border);
-            box-shadow: var(--shadow-card);
-          }
-          .faq-category-count {
-            font-size: 10px;
-            background: var(--border);
-            color: var(--text-sub);
-            padding: 2px 6px;
-            border-radius: 999px;
-            font-weight: 600;
-          }
-          .faq-category-btn.active .faq-category-count {
-            background: var(--accent);
-            color: #ffffff;
-          }
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '6px 16px',
+              borderRadius: 999,
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text-sub)',
+              marginBottom: 18,
+              boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+            }}>
+              <span className="sq-live-dot" />
+              <span>Help Center & Knowledge Base</span>
+            </div>
 
-          .faq-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-          }
-          .faq-item-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-s);
-            border-radius: 18px;
-            padding: 20px 24px;
-            cursor: pointer;
-            transition: all 0.4s var(--ease-out-expo);
-          }
-          .faq-item-card:hover {
-            border-color: var(--border);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-card);
-          }
-          .faq-item-question-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-          }
-          .faq-item-question {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text);
-            margin: 0;
-            line-height: 1.4;
-          }
-          .faq-item-answer-wrapper {
-            max-height: 0;
-            opacity: 0;
-            overflow: hidden;
-            transition: max-height 0.4s var(--ease-out-expo), opacity 0.4s var(--ease-out-expo), padding-top 0.4s var(--ease-out-expo);
-          }
-          .faq-item-answer-wrapper.open {
-            max-height: 240px;
-            opacity: 1;
-            padding-top: 12px;
-          }
-          .faq-item-answer {
-            font-size: 13px;
-            color: var(--text-sub);
-            line-height: 1.5;
-            margin: 0;
-          }
+            <h1 style={{
+              fontSize: 'clamp(34px, 5.5vw, 52px)',
+              fontWeight: 800,
+              color: 'var(--text)',
+              lineHeight: 1.1,
+              letterSpacing: '-0.03em',
+              marginBottom: 18,
+            }}>
+              Answers to everything <span style={{
+                background: 'linear-gradient(135deg, var(--accent) 0%, #5ac8ff 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}>SmartQueue.</span>
+            </h1>
 
-          .faq-support-card {
-            max-width: 840px;
-            width: 100%;
-            margin: 0 auto 40px;
-            padding: 0 20px;
-            box-sizing: border-box;
-          }
-          .faq-support-inner {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-card);
-            padding: 40px;
-            text-align: center;
-            box-shadow: var(--shadow-card);
-          }
-          .faq-support-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text);
-            margin-bottom: 8px;
-          }
-          .faq-support-desc {
-            font-size: 13px;
-            color: var(--text-sub);
-            max-width: 440px;
-            margin: 0 auto 20px;
-            line-height: 1.5;
-          }
-          .faq-support-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: wrap;
-          }
+            <p style={{
+              fontSize: 16,
+              color: 'var(--text-sub)',
+              maxWidth: 580,
+              margin: '0 auto 32px',
+              lineHeight: 1.55,
+            }}>
+              Find quick solutions, explore step-by-step guides, or ask our intelligent AI Assistant for real-time help.
+            </p>
 
-          @media (max-width: 768px) {
-            .faq-hero {
-              padding: 60px 20px 30px;
-            }
-            .faq-container {
-              grid-template-columns: 1fr;
-              gap: 20px;
-              padding-bottom: 60px;
-            }
-            .faq-sidebar {
-              position: static;
-              flex-direction: row;
-              overflow-x: auto;
-              padding: 4px 4px 10px;
-              margin: 0 -20px 10px;
-              padding-left: 20px;
-              padding-right: 20px;
-              border-bottom: 1px solid var(--border-s);
-              gap: 8px;
-              scrollbar-width: none;
-              -webkit-overflow-scrolling: touch;
-            }
-            .faq-sidebar::-webkit-scrollbar {
-              display: none;
-            }
-            .faq-category-btn {
-              flex-shrink: 0;
-              padding: 8px 14px;
-              font-size: 12px;
-              border-radius: 20px;
-              border: 1px solid var(--border);
-              background: var(--bg-card);
-            }
-            .faq-category-btn.active {
-              background: var(--accent);
-              color: #ffffff;
-              border-color: var(--accent);
-            }
-            .faq-category-count {
-              display: none;
-            }
-            .faq-support-inner {
-              padding: 30px 20px;
-            }
-          }
-        `}</style>
+            {/* Interactive Search Bar */}
+            <div style={{
+              maxWidth: 580,
+              margin: '0 auto',
+              position: 'relative',
+            }}>
+              <div style={{
+                position: 'absolute',
+                left: 18,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-dim)',
+                display: 'flex',
+                alignItems: 'center',
+                pointerEvents: 'none',
+              }}>
+                <Search size={18} />
+              </div>
 
-        {/* 1. HERO HEADER */}
-        <header className="faq-hero sq-fade-in">
-          <h1 className="faq-title" id="faq-page-heading">Help & FAQs</h1>
-          <p className="faq-subtitle">
-            Find answers to frequently asked questions about the virtual queue system at GH Raisoni College.
-          </p>
-        </header>
-
-        {/* 2. SEARCH BAR */}
-        <div className="search-wrapper sq-fade-in">
-          <div className="search-input-container">
-            <svg
-              className="search-icon"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              id="faq-search-input"
-              type="text"
-              placeholder="Search FAQs (e.g. 'token', 'wait time', 'notification')..."
-              className="search-input"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Search FAQs"
-            />
-            {searchQuery && (
-              <button
-                className="clear-button"
-                onClick={() => setSearchQuery('')}
-                aria-label="Clear search query"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 3. FAQ GRID */}
-        <main className="faq-container">
-          {/* Left: Category Sidebar */}
-          <aside
-            className="faq-sidebar sq-fade-in faq-filter-row"
-            aria-label="FAQ Categories"
-            style={{
-              display: 'flex',
-              gap: '8px',
-              overflowX: 'auto',
-              WebkitOverflowScrolling: 'touch',
-              paddingBottom: '8px',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-            }}
-          >
-            {CATEGORIES.map((category) => {
-              const isActive = selectedCategory === category;
-              return (
-                <button
-                  key={category}
-                  className={`faq-category-btn ${isActive ? 'active' : ''}`}
-                  onClick={() => setSelectedCategory(category)}
-                  aria-pressed={isActive}
-                  style={{
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <span>{category}</span>
-                  <span className="faq-category-count">{getCategoryCount(category)}</span>
-                </button>
-              );
-            })}
-          </aside>
-
-          {/* Right: Questions Accordion List */}
-          <section className="faq-list" aria-label="FAQ List">
-            {filteredFaqs.length > 0 ? (
-              filteredFaqs.map((faq) => {
-                const isOpen = !!openFaqs[faq.id];
-                return (
-                  <article
-                    key={faq.id}
-                    className="faq-item-card sq-fade-in"
-                    onClick={() => toggleFaq(faq.id)}
-                  >
-                    <button
-                      type="button"
-                      className="faq-item-question-row"
-                      style={{
-                        width: '100%',
-                        background: 'none',
-                        border: 'none',
-                        textAlign: 'left',
-                        padding: 0,
-                        cursor: 'pointer',
-                        fontFamily: 'inherit',
-                      }}
-                      aria-expanded={isOpen}
-                    >
-                      <h3 className="faq-item-question">{faq.q}</h3>
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{
-                          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.4s var(--ease-out-expo)',
-                          color: isOpen ? 'var(--accent)' : 'var(--text-dim)',
-                          flexShrink: 0
-                        }}
-                      >
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    </button>
-
-                    <div className={`faq-item-answer-wrapper ${isOpen ? 'open' : ''}`}>
-                      <p className="faq-item-answer">{faq.a}</p>
-                    </div>
-                  </article>
-                );
-              })
-            ) : (
-              <EmptyState
-                icon="🔍"
-                title="No FAQs found"
-                description={`No results matched your search for "${deferredSearchQuery}"${
-                  selectedCategory !== 'All' ? ` in the category "${selectedCategory}"` : ''
-                }. Try searching other terms or clearing filters.`}
-                actionLabel="Clear Filters"
-                onAction={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('All');
+              <input
+                type="text"
+                placeholder="Search topics (e.g. 'cancel token', 'wait time', 'alerts')..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '16px 44px 16px 48px',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  color: 'var(--text)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 18,
+                  outline: 'none',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.25s ease',
                 }}
               />
-            )}
-          </section>
-        </main>
 
-        {/* 4. SUPPORT CALL TO ACTION */}
-        <section className="faq-support-card sq-fade-in">
-          <div className="faq-support-inner">
-            <h2 className="faq-support-title">Still have questions?</h2>
-            <p className="faq-support-desc">
-              If you couldn&apos;t find the answers you were looking for, please connect with the G H Raisoni administrative office or IT help desk.
-            </p>
-            <div className="faq-support-buttons">
-              <a href="mailto:info.jalgaon@raisoni.net" className="sq-btn sq-btn-primary">
-                Email Support
-              </a>
-              <a href="tel:+912572264881" className="sq-btn sq-btn-ghost">
-                Call Help Desk
-              </a>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: 14,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border-s)',
+                    borderRadius: 999,
+                    width: 26,
+                    height: 26,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: 'var(--text-sub)',
+                  }}
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
           </div>
         </section>
 
-        <Footer />
-      </div>
+        {/* 4 Topic Bento Cards (Quick Category Jump) */}
+        {!searchQuery && (
+          <section style={{ marginBottom: 48 }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+              gap: 16,
+            }}>
+              {TOPIC_CARDS.map((card) => {
+                const Icon = card.icon;
+                const isCurrent = selectedCategory === card.category;
+                return (
+                  <div
+                    key={card.category}
+                    onClick={() => setSelectedCategory(card.category)}
+                    className="sq-card sq-card-lift"
+                    style={{
+                      padding: 20,
+                      borderRadius: 18,
+                      cursor: 'pointer',
+                      border: isCurrent ? '1.5px solid var(--accent)' : '1px solid var(--border-s)',
+                      background: isCurrent ? 'var(--bg-hover)' : 'var(--bg-card)',
+                      transition: 'all 0.3s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 12,
+                        background: 'var(--bg)',
+                        border: '1px solid var(--border-s)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: card.color,
+                        marginBottom: 14,
+                      }}>
+                        <Icon size={18} />
+                      </div>
+                      <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+                        {card.title}
+                      </h3>
+                      <p style={{ fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.5, margin: 0 }}>
+                        {card.desc}
+                      </p>
+                    </div>
+
+                    <div style={{
+                      marginTop: 14,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: isCurrent ? 'var(--accent)' : 'var(--text-dim)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}>
+                      <span>{getCategoryCount(card.category)} articles</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Category Pills Bar */}
+        <section style={{ marginBottom: 24 }}>
+          <div style={{
+            display: 'flex',
+            gap: 8,
+            overflowX: 'auto',
+            paddingBottom: 6,
+            scrollbarWidth: 'none',
+          }}>
+            {CATEGORIES.map((cat) => {
+              const active = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    border: active ? '1px solid var(--accent)' : '1px solid var(--border)',
+                    background: active ? 'var(--accent)' : 'var(--bg-card)',
+                    color: active ? '#ffffff' : 'var(--text-sub)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s ease',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <span>{cat}</span>
+                  <span style={{
+                    fontSize: 10,
+                    padding: '1px 6px',
+                    borderRadius: 999,
+                    background: active ? 'rgba(255,255,255,0.25)' : 'var(--bg)',
+                    color: active ? '#ffffff' : 'var(--text-dim)',
+                  }}>
+                    {getCategoryCount(cat)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Accordion FAQ List */}
+        <section style={{ marginBottom: 60 }}>
+          {filteredFaqs.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {filteredFaqs.map((faq) => {
+                const isOpen = !!openFaqs[faq.id];
+                return (
+                  <div
+                    key={faq.id}
+                    onClick={() => toggleFaq(faq.id)}
+                    className="sq-card"
+                    style={{
+                      padding: '20px 24px',
+                      borderRadius: 18,
+                      cursor: 'pointer',
+                      border: isOpen ? '1px solid var(--border)' : '1px solid var(--border-s)',
+                      background: isOpen ? 'var(--bg-hover)' : 'var(--bg-card)',
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 16,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                          color: 'var(--accent)',
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          background: 'rgba(0,113,227,0.08)',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {faq.category}
+                        </span>
+                        <h3 style={{
+                          fontSize: 15,
+                          fontWeight: 600,
+                          color: 'var(--text)',
+                          margin: 0,
+                          lineHeight: 1.35,
+                        }}>
+                          {faq.q}
+                        </h3>
+                      </div>
+
+                      <div style={{
+                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                        color: isOpen ? 'var(--accent)' : 'var(--text-dim)',
+                        flexShrink: 0,
+                      }}>
+                        <ChevronDown size={18} />
+                      </div>
+                    </div>
+
+                    {isOpen && (
+                      <div style={{
+                        marginTop: 14,
+                        paddingTop: 14,
+                        borderTop: '1px solid var(--border-s)',
+                        fontSize: 13,
+                        color: 'var(--text-sub)',
+                        lineHeight: 1.65,
+                      }}>
+                        {faq.a}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState
+              icon="🔍"
+              title="No matching FAQs found"
+              description={`No questions matched "${deferredSearchQuery}" in ${selectedCategory}. Try another keyword or reset filters.`}
+              actionLabel="Reset All Filters"
+              onAction={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+              }}
+            />
+          )}
+        </section>
+
+        {/* AI Assistant Banner */}
+        <section
+          className="sq-card"
+          style={{
+            padding: 30,
+            borderRadius: 22,
+            marginBottom: 40,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 20,
+            flexWrap: 'wrap',
+            background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-hover) 100%)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <div style={{
+              width: 46,
+              height: 46,
+              borderRadius: 14,
+              background: 'linear-gradient(135deg, #af52de 0%, #da8fff 100%)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <Bot size={24} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>
+                  Need Immediate Assistance?
+                </h3>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#af52de', background: 'rgba(175,82,222,0.1)', padding: '2px 8px', borderRadius: 999 }}>
+                  Groq AI Powered
+                </span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--text-sub)', margin: 0 }}>
+                Our virtual assistant is available 24/7 on the Student Dashboard to answer queue-related queries.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/dashboard"
+            className="sq-btn sq-btn-primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+          >
+            <Sparkles size={15} />
+            <span>Open Student Dashboard</span>
+          </Link>
+        </section>
+
+        {/* Support Card */}
+        <section className="sq-card" style={{ padding: 32, borderRadius: 22, textAlign: 'center' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
+            Still have questions?
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--text-sub)', maxWidth: 460, margin: '0 auto 20px', lineHeight: 1.6 }}>
+            If you need assistance with specific student account issues or counter queries, reach out to our administration desk.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <a href="mailto:support@smartqueue.local" className="sq-btn sq-btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <Mail size={15} />
+              <span>Email Support</span>
+            </a>
+            <Link href="/about" className="sq-btn sq-btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <HelpCircle size={15} />
+              <span>About SmartQueue</span>
+            </Link>
+          </div>
+        </section>
+
+      </main>
+
+      <Footer />
     </>
   );
 }
