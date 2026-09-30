@@ -1,11 +1,12 @@
 'use client';
 
+import { checkGeofence } from '@/lib/geofence';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { Navbar } from '@/components/layout/Navbar';
-import { joinQueue as joinQueueAction } from '@/lib/firebase-helpers';
+import { joinQueue as joinQueueAction, getAppSettings } from '@/lib/firebase-helpers';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -127,6 +128,17 @@ export default function StudentDashboard() {
     setJoiningId(queueId);
 
     try {
+      // Geofence check — hard block, only runs if admin has enabled it
+      const settings = await getAppSettings();
+      if (settings.geofencingEnabled) {
+        const geofence = await checkGeofence();
+        if (!geofence.allowed) {
+          alert(geofence.reason || 'You must be on campus to join a queue.');
+          setJoiningId(null);
+          return;
+        }
+      }
+
       const queuesSnap = await getDocs(collection(db, 'queues'));
       for (const qDoc of queuesSnap.docs) {
         for (const status of ['waiting', 'called']) {

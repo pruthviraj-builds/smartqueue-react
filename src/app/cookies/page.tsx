@@ -30,7 +30,7 @@ export default function CookiesPage() {
           <h1 style={{ fontSize: 32, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
             Cookie Policy
           </h1>
-          <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>Last updated: June 2026</p>
+          <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>Last updated: October 2026</p>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
@@ -108,7 +108,22 @@ export default function CookiesPage() {
 
           <section>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 10 }}>
-              4. We Do Not Use
+              4. Location Data
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--text-sub)', lineHeight: 1.8 }}>
+              When campus geofencing is enabled by the administrator, SmartQueue requests
+              permission from your browser to access your device&apos;s location before you
+              join a queue. This is used only to confirm you are within the permitted
+              campus radius at that moment. Your location is checked live and is not
+              stored, logged, or shared — it exists only in your browser&apos;s memory for
+              the duration of the check. You can deny this permission, but doing so may
+              prevent you from joining a queue while geofencing is active.
+            </p>
+          </section>
+
+          <section>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 10 }}>
+              5. We Do Not Use
             </h2>
             <ul style={{ paddingLeft: 20, fontSize: 14, color: 'var(--text-sub)', lineHeight: 1.8 }}>
               <li>Advertising or tracking cookies</li>
@@ -119,7 +134,7 @@ export default function CookiesPage() {
 
           <section>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 10 }}>
-              5. Managing Cookies
+              6. Managing Cookies
             </h2>
             <p style={{ fontSize: 14, color: 'var(--text-sub)', lineHeight: 1.8, marginBottom: 8 }}>
               You can control or delete cookies through your browser settings. Note that
@@ -138,7 +153,7 @@ export default function CookiesPage() {
 
           <section>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 10 }}>
-              6. Contact
+              7. Contact
             </h2>
             <p style={{ fontSize: 14, color: 'var(--text-sub)', lineHeight: 1.8 }}>
               If you have questions about our use of cookies, contact the SmartQueue

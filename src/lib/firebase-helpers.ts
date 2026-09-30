@@ -1,4 +1,6 @@
 import { db, auth } from './firebase';
+import { getApp, initializeApp, deleteApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword, signOut as fbSignOut } from 'firebase/auth';
 import {
   collection,
   doc,
@@ -365,4 +367,41 @@ export async function getQueueStatistics() {
   });
 
   return Promise.all(statsPromises);
+}
+export async function getAppSettings() {
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'app'));
+    if (!snap.exists()) return { geofencingEnabled: false };
+    return { geofencingEnabled: (snap.data().geofencingEnabled as boolean) ?? false };
+  } catch {
+    return { geofencingEnabled: false };
+  }
+}
+
+export async function updateGeofencingSetting(enabled: boolean) {
+  await setDoc(doc(db, 'settings', 'app'), { geofencingEnabled: enabled }, { merge: true });
+  await logActivity(
+    enabled ? 'GEOFENCING_ENABLED' : 'GEOFENCING_DISABLED',
+    `Geofencing was ${enabled ? 'enabled' : 'disabled'} by admin.`
+  );
+}
+
+export async function createStaffAccount(name: string, email: string, password: string) {
+  // Secondary app instance so the admin's own session is not replaced
+  const secondary = initializeApp(getApp().options, `staff-creator-${Date.now()}`);
+  try {
+    const secondaryAuth = getAuth(secondary);
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      name,
+      email,
+      role: 'staff',
+      createdAt: new Date(),
+    });
+    await fbSignOut(secondaryAuth);
+    await logActivity('STAFF_CREATED', `Staff account created for ${name} (${email}).`);
+    return cred.user.uid;
+  } finally {
+    await deleteApp(secondary);
+  }
 }

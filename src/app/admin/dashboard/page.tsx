@@ -17,6 +17,9 @@ import {
   assignStaffToQueue,
   removeStaffAssignment,
   resetQueue,
+  getAppSettings,
+  updateGeofencingSetting,
+  createStaffAccount,
 } from '@/lib/firebase-helpers';
 
 interface QueueData {
@@ -76,6 +79,14 @@ export default function AdminDashboard() {
   const [newStaffId, setNewStaffId] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Staff creation states
+  const [staffName, setStaffName] = useState('');
+  const [staffEmail, setStaffEmail] = useState('');
+  const [staffPassword, setStaffPassword] = useState('');
+  const [staffError, setStaffError] = useState('');
+  const [staffSuccess, setStaffSuccess] = useState('');
+  const [creatingStaff, setCreatingStaff] = useState(false);
   
   // Tab State: 'overview' (Queues), 'manage' (Staff), 'analytics' (Analytics)
   const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'analytics'>('overview');
@@ -110,6 +121,27 @@ export default function AdminDashboard() {
   });
   const [queueStats, setQueueStats] = useState<QueueStat[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+
+  // Geofencing toggle state
+  const [geofencingEnabled, setGeofencingEnabled] = useState(false);
+  const [geofenceLoading, setGeofenceLoading] = useState(false);
+
+  useEffect(() => {
+    getAppSettings().then((s) => setGeofencingEnabled(s.geofencingEnabled));
+  }, []);
+
+  const handleToggleGeofencing = async () => {
+    const next = !geofencingEnabled;
+    setGeofenceLoading(true);
+    try {
+      await updateGeofencingSetting(next);
+      setGeofencingEnabled(next);
+    } catch {
+      alert('Failed to update geofencing setting.');
+    } finally {
+      setGeofenceLoading(false);
+    }
+  };
 
   const exportToCSV = () => {
     // Columns: Department Name, Tokens Issued, Tokens Completed, Avg Wait Time (mins), Avg Service Time (mins)
@@ -370,6 +402,38 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCreateStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStaffError('');
+    setStaffSuccess('');
+    if (!staffName.trim() || !staffEmail.trim()) {
+      setStaffError('Name and email are required.');
+      return;
+    }
+    if (staffPassword.length < 6) {
+      setStaffError('Password must be at least 6 characters.');
+      return;
+    }
+    setCreatingStaff(true);
+    try {
+      await createStaffAccount(staffName.trim(), staffEmail.trim(), staffPassword);
+      setStaffSuccess(`Staff account created for ${staffName.trim()}.`);
+      setStaffName('');
+      setStaffEmail('');
+      setStaffPassword('');
+      setTimeout(() => setStaffSuccess(''), 4000);
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      setStaffError(
+        code === 'auth/email-already-in-use' ? 'This email is already registered.'
+        : code === 'auth/invalid-email' ? 'Please enter a valid email address.'
+        : 'Failed to create staff account. Try again.'
+      );
+    } finally {
+      setCreatingStaff(false);
+    }
+  };
+
   const handleDeleteQueue = async (id: string, name: string) => {
     // SAFEGUARD: Prevent deleting if active tokens exist in subcollection
     const activeTokensSnap = await getDocs(
@@ -492,6 +556,8 @@ export default function AdminDashboard() {
     'TOKEN_COMPLETED',
     'STAFF_ASSIGNED',
     'STAFF_UNASSIGNED',
+    'GEOFENCING_ENABLED',
+    'GEOFENCING_DISABLED',
   ];
 
   const STUDENT_ACTIONS = [
@@ -600,6 +666,27 @@ export default function AdminDashboard() {
             {/* 1. Queue Management Tab (Overview) */}
             {activeTab === 'overview' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                {/* Campus Geofencing Toggle */}
+                <div className="sq-card sq-fade-in" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 18, gap: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Campus Geofencing</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4 }}>
+                      {geofencingEnabled
+                        ? 'Students must be within campus range to join a queue.'
+                        : 'Location check is off. Students can join from anywhere.'}
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleToggleGeofencing}
+                    disabled={geofenceLoading}
+                    className={`sq-btn sq-btn-sm ${geofencingEnabled ? 'sq-btn-primary' : 'sq-btn-ghost'}`}
+                    style={{ height: 32, fontSize: 12, opacity: geofenceLoading ? 0.6 : 1 }}
+                  >
+                    {geofenceLoading ? '...' : geofencingEnabled ? 'Enabled' : 'Disabled'}
+                  </button>
+                </div>
+
                 {/* Create Queue Form */}
                 <div className="sq-card sq-fade-in">
                   <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>
@@ -756,8 +843,56 @@ export default function AdminDashboard() {
 
             {/* 2. Staff Management Tab */}
             {activeTab === 'manage' && (
-              <div className="sq-card sq-fade-in">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div className="sq-card sq-fade-in">
+                  <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>
+                    Create Staff Account
+                  </h3>
+                  <form onSubmit={handleCreateStaff} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                      <div>
+                        <label className="sq-label">Full Name</label>
+                        <input
+                          type="text"
+                          placeholder="Staff full name"
+                          className="sq-input"
+                          value={staffName}
+                          onChange={(e) => setStaffName(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="sq-label">Email</label>
+                        <input
+                          type="email"
+                          placeholder="staff@raisoni.com"
+                          className="sq-input"
+                          value={staffEmail}
+                          onChange={(e) => setStaffEmail(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="sq-label">Temporary Password</label>
+                        <input
+                          type="password"
+                          placeholder="Min 6 characters"
+                          className="sq-input"
+                          value={staffPassword}
+                          onChange={(e) => setStaffPassword(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    {staffError && <div className="sq-alert sq-alert-error show">{staffError}</div>}
+                    {staffSuccess && <div className="sq-alert sq-alert-success show">{staffSuccess}</div>}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <button type="submit" className="sq-btn sq-btn-primary" disabled={creatingStaff}>
+                        {creatingStaff ? 'Creating…' : 'Create Staff Account'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                <div className="sq-card sq-fade-in">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
                   <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
                     Staff Member Directory
                   </h3>
@@ -835,7 +970,8 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
-            )}
+            </div>
+          )}
 
             {/* 3. Analytics Tab */}
             {activeTab === 'analytics' && (
