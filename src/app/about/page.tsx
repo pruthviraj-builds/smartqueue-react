@@ -268,6 +268,7 @@ const TEAM = [
     highlight: 'Architecture, UI/UX & Realtime Logic',
     desc: 'Engineered the complete frontend experience, Firebase real-time synchronization, Groq AI assistant integration, and deployment infrastructure.',
     badge: 'Frontend & Backend',
+    github: 'https://github.com/pruthviraj-builds',
   },
   {
     name: 'Mohd Husham',
@@ -275,6 +276,7 @@ const TEAM = [
     highlight: 'Data Modeling & Access Rules',
     desc: 'Designed Firestore database architecture, optimized document structure for queue counters, and authored comprehensive security rules.',
     badge: 'Database & Data Flow',
+    github: 'https://github.com/hushamorg',
   },
 ];
 
@@ -563,29 +565,57 @@ export default function AboutPage() {
                   borderRadius: 20,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-                  <div style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 14,
-                    background: 'linear-gradient(135deg, var(--accent) 0%, #5ac8ff 100%)',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 18,
-                    fontWeight: 800,
-                  }}>
-                    {member.name.charAt(0)}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 14,
+                      background: 'linear-gradient(135deg, var(--accent) 0%, #5ac8ff 100%)',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 18,
+                      fontWeight: 800,
+                    }}>
+                      {member.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>
+                        {member.name}
+                      </h3>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>
+                        {member.role}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>
-                      {member.name}
-                    </h3>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>
-                      {member.role}
-                    </p>
-                  </div>
+
+                  <a
+                    href={member.github}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--text)',
+                      textDecoration: 'none',
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      background: 'var(--bg)',
+                      border: '1px solid var(--border)',
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                    </svg>
+                    <span>GitHub</span>
+                  </a>
                 </div>
 
                 <div style={{
