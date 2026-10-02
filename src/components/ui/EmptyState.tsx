@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 
 interface EmptyStateProps {
-  icon?: string;
+  icon?: React.ReactNode;
   title: string;
   description: string;
   actionHref?: string;
@@ -36,7 +36,7 @@ export function EmptyState({
         ...style 
       }}
     >
-      <div style={{ fontSize: 44, marginBottom: 8 }}>{icon}</div>
+      <div style={{ fontSize: 44, marginBottom: 8, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>{icon}</div>
       <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
         {title}
       </h3>

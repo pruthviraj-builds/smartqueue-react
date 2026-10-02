@@ -3,11 +3,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { Navbar } from '@/components/layout/Navbar';
+import { DashboardSidebar } from '@/components/layout/DashboardSidebar';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useRouter } from 'next/navigation';
+import { ArrowRight, CheckCircle2, RotateCcw, Ban, ClipboardList, Users, Settings } from 'lucide-react';
 import {
   collection,
   doc,
@@ -256,19 +257,16 @@ export default function StaffDashboard() {
 
   return (
     <>
-      <Navbar 
-        portal="staff" 
-        userName={staffName} 
-        onLogout={handleLogout} 
-        activeTab={activeTab} 
-        onTabChange={(tab) => setActiveTab(tab as 'assigned' | 'controls')} 
+      <DashboardSidebar
+        role="staff"
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab as 'assigned' | 'controls')}
+        userName={staffName}
+        onLogout={handleLogout}
       />
 
-      <div style={{
-        maxWidth: 640, margin: '0 auto',
-        padding: '40px 20px',
-        display: 'flex', flexDirection: 'column', gap: 14,
-      }}>
+      <div style={{ marginLeft: 240, padding: '40px 40px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ maxWidth: 1000, width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {error && (
           <ErrorState message={error} onRetry={() => window.location.reload()} />
@@ -288,7 +286,7 @@ export default function StaffDashboard() {
                 </h3>
                 {queueOptions.length === 0 ? (
                   <EmptyState
-                    icon="📋"
+                    icon={<ClipboardList size={28} color="var(--text-sub)" />}
                     title="No Assigned Queues"
                     description="You are not assigned to any department queues currently."
                   />
@@ -436,8 +434,9 @@ export default function StaffDashboard() {
                         border: '1px solid rgba(255,59,48,0.15)',
                         borderRadius: 16,
                         color: '#ff3b30', fontSize: 13, fontWeight: 600,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                       }}>
-                        🚫 Queue is closed — open it to enable actions.
+                        <Ban size={16} /> Queue is closed — open it to enable actions.
                       </div>
                     )}
 
@@ -454,7 +453,11 @@ export default function StaffDashboard() {
                             className="sq-btn sq-btn-primary sq-btn-lg"
                             style={{ opacity: loadingAction === 'call' ? 0.7 : 1 }}
                           >
-                            {loadingAction === 'call' ? '…' : '➡️ Call Next'}
+                            {loadingAction === 'call' ? '…' : (
+                              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                <ArrowRight size={16} /> Call Next
+                              </span>
+                            )}
                           </button>
                           <button
                             onClick={handleMarkComplete}
@@ -462,7 +465,11 @@ export default function StaffDashboard() {
                             className="sq-btn sq-btn-ghost sq-btn-lg"
                             style={{ opacity: loadingAction === 'complete' ? 0.7 : 1 }}
                           >
-                            {loadingAction === 'complete' ? '…' : '✅ Mark Complete'}
+                            {loadingAction === 'complete' ? '…' : (
+                              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                <CheckCircle2 size={16} /> Mark Complete
+                              </span>
+                            )}
                           </button>
                         </div>
                         <button
@@ -471,7 +478,11 @@ export default function StaffDashboard() {
                           className="sq-btn sq-btn-danger sq-btn-full"
                           style={{ padding: 12, opacity: loadingAction === 'reset' ? 0.7 : 1 }}
                         >
-                          {loadingAction === 'reset' ? 'Resetting…' : '🔄 Reset Queue for Today'}
+                          {loadingAction === 'reset' ? 'Resetting…' : (
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                              <RotateCcw size={14} /> Reset Queue for Today
+                            </span>
+                          )}
                         </button>
                       </div>
                     )}
@@ -495,7 +506,7 @@ export default function StaffDashboard() {
 
                       {waitingList.length === 0 ? (
                         <EmptyState
-                          icon="👥"
+                          icon={<Users size={28} color="var(--text-sub)" />}
                           title="No students waiting"
                           description="There are no students currently waiting in the queue."
                           style={{ margin: 0, padding: '24px 16px' }}
@@ -533,7 +544,7 @@ export default function StaffDashboard() {
                 {/* Placeholder when no queue selected */}
                 {!selectedQueueId && (
                   <EmptyState
-                    icon="⚙️"
+                    icon={<Settings size={28} color="var(--text-sub)" />}
                     title="Select a queue to get started"
                     description="Choose an assigned queue from the dropdown or the Assigned Queues tab to manage."
                   />
@@ -543,6 +554,7 @@ export default function StaffDashboard() {
           </>
         )}
 
+        </div>
       </div>
     </>
   );

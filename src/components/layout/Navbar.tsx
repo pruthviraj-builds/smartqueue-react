@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from './ThemeProvider';
-import { LayoutDashboard, Ticket, Settings, Users, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Ticket, Settings, Users, BarChart3, Crown } from 'lucide-react';
 
 export type NavbarPortal = 
   | 'home'
@@ -49,7 +49,7 @@ export function Navbar({
   }, []);
 
   // Determine logo config based on portal
-  let logoMark = 'Q';
+  let logoMark: React.ReactNode = 'Q';
   let logoName = 'SmartQueue';
   let logoSub = '';
   let logoHref = '/';
@@ -58,12 +58,12 @@ export function Navbar({
     logoSub = 'Student Portal';
     logoHref = '/dashboard';
   } else if (portal === 'staff' || portal === 'staff-login') {
-    logoMark = '⚙';
+    logoMark = <Settings size={18} />;
     logoName = 'Staff Panel';
     logoSub = 'SmartQueue Management';
     logoHref = '/staff/dashboard';
   } else if (portal === 'admin' || portal === 'admin-login') {
-    logoMark = '👑';
+    logoMark = <Crown size={18} />;
     logoName = 'Admin Panel';
     logoSub = 'SmartQueue Analytics';
     logoHref = '/admin/dashboard';

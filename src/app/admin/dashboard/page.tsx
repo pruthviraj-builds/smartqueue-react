@@ -3,11 +3,26 @@
 import { useEffect, useState } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { Navbar } from '@/components/layout/Navbar';
+import { DashboardSidebar } from '@/components/layout/DashboardSidebar';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useRouter } from 'next/navigation';
+import {
+  Building2,
+  Users,
+  CheckCircle2,
+  Clock,
+  Ban,
+  Zap,
+  RotateCcw,
+  Trash2,
+  Download,
+  Settings,
+  GraduationCap,
+  ClipboardList,
+  Search,
+} from 'lucide-react';
 import { collection, onSnapshot, query, where, getDocs, collectionGroup, orderBy, limit } from 'firebase/firestore';
 import {
   getUserDoc,
@@ -88,8 +103,8 @@ export default function AdminDashboard() {
   const [staffSuccess, setStaffSuccess] = useState('');
   const [creatingStaff, setCreatingStaff] = useState(false);
   
-  // Tab State: 'overview' (Queues), 'manage' (Staff), 'analytics' (Analytics)
-  const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'analytics'>('overview');
+  // Tab State: 'overview' (Queues), 'manage' (Staff), 'analytics' (Analytics), 'settings' (Settings)
+  const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'analytics' | 'settings'>('overview');
 
   // Date filter states
   type DateFilter = 'today' | 'yesterday' | 'week' | 'custom';
@@ -577,15 +592,16 @@ export default function AdminDashboard() {
 
   return (
     <>
-      <Navbar 
-        portal="admin" 
-        userName={adminName} 
-        onLogout={handleLogout} 
-        activeTab={activeTab} 
-        onTabChange={(tab) => setActiveTab(tab as 'overview' | 'manage' | 'analytics')} 
+      <DashboardSidebar
+        role="admin"
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab as 'overview' | 'manage' | 'analytics' | 'settings')}
+        userName={adminName}
+        onLogout={handleLogout}
       />
 
-      <div style={{ maxWidth: 840, margin: '0 auto', padding: '40px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ marginLeft: 240, padding: '40px 40px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ maxWidth: 1000, width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
         
         {/* Header */}
         <div className="sq-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -619,6 +635,16 @@ export default function AdminDashboard() {
               </h2>
               <p style={{ fontSize: 14, color: 'var(--text-sub)' }}>
                 Monitor queue performance and operational metrics.
+              </p>
+            </>
+          )}
+          {activeTab === 'settings' && (
+            <>
+              <h2 style={{ fontSize: 32, fontWeight: 700, color: 'var(--text)', lineHeight: 1.1 }}>
+                Settings
+              </h2>
+              <p style={{ fontSize: 14, color: 'var(--text-sub)' }}>
+                Manage system-wide configuration and security settings.
               </p>
             </>
           )}
@@ -666,26 +692,6 @@ export default function AdminDashboard() {
             {/* 1. Queue Management Tab (Overview) */}
             {activeTab === 'overview' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-                {/* Campus Geofencing Toggle */}
-                <div className="sq-card sq-fade-in" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 18, gap: 12, flexWrap: 'wrap' }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Campus Geofencing</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4 }}>
-                      {geofencingEnabled
-                        ? 'Students must be within campus range to join a queue.'
-                        : 'Location check is off. Students can join from anywhere.'}
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleToggleGeofencing}
-                    disabled={geofenceLoading}
-                    className={`sq-btn sq-btn-sm ${geofencingEnabled ? 'sq-btn-primary' : 'sq-btn-ghost'}`}
-                    style={{ height: 32, fontSize: 12, opacity: geofenceLoading ? 0.6 : 1 }}
-                  >
-                    {geofenceLoading ? '...' : geofencingEnabled ? 'Enabled' : 'Disabled'}
-                  </button>
-                </div>
 
                 {/* Create Queue Form */}
                 <div className="sq-card sq-fade-in">
@@ -749,7 +755,7 @@ export default function AdminDashboard() {
 
                   {queues.length === 0 ? (
                     <EmptyState
-                      icon="🏢"
+                      icon={<Building2 size={28} color="var(--text-sub)" />}
                       title="No department queues"
                       description="No department queues have been created yet. Use the creation form above to add a department."
                     />
@@ -780,21 +786,25 @@ export default function AdminDashboard() {
                                   className={`sq-btn sq-btn-sm ${q.isActive ? 'sq-btn-ghost' : 'sq-btn-primary'}`}
                                   style={{ height: 32, fontSize: 12 }}
                                 >
-                                  {q.isActive ? '🚫 Close' : '⚡ Open'}
+                                  {q.isActive ? (
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Ban size={14} /> Close</span>
+                                  ) : (
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Zap size={14} /> Open</span>
+                                  )}
                                 </button>
                                 <button 
                                   onClick={() => handleReset(q.id, q.deptName)}
                                   className="sq-btn sq-btn-sm sq-btn-ghost"
                                   style={{ height: 32, fontSize: 12, color: '#ff9f0a', borderColor: 'rgba(255,159,10,0.2)' }}
                                 >
-                                  🔄 Reset
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><RotateCcw size={14} /> Reset</span>
                                 </button>
                                 <button 
                                   onClick={() => handleDeleteQueue(q.id, q.deptName)}
                                   className="sq-btn sq-btn-sm sq-btn-danger"
                                   style={{ height: 32, fontSize: 12 }}
                                 >
-                                  🗑️ Delete
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Trash2 size={14} /> Delete</span>
                                 </button>
                               </div>
                             </div>
@@ -896,19 +906,26 @@ export default function AdminDashboard() {
                   <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
                     Staff Member Directory
                   </h3>
-                  <input 
-                    type="text" 
-                    placeholder="🔍 Search staff by name or email..."
-                    className="sq-input"
-                    style={{ maxWidth: 300, height: 36, fontSize: 13, borderRadius: 10 }}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
+                  <div style={{ position: 'relative', maxWidth: 300, width: '100%' }}>
+                    <Search 
+                      size={14} 
+                      color="var(--text-dim)" 
+                      style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} 
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Search staff by name or email..."
+                      className="sq-input"
+                      style={{ width: '100%', height: 36, fontSize: 13, borderRadius: 10, paddingLeft: 34 }}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 {filteredStaff.length === 0 ? (
                   <EmptyState
-                    icon="👥"
+                    icon={<Users size={28} color="var(--text-sub)" />}
                     title={searchQuery ? "No matching staff" : "No staff members"}
                     description={searchQuery ? "No staff members matched your search criteria." : "No staff members have been registered in the system."}
                   />
@@ -983,32 +1000,32 @@ export default function AdminDashboard() {
                     className="sq-btn sq-btn-primary"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
                   >
-                    📥 Export CSV Report
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Download size={14} /> Export CSV Report</span>
                   </button>
                 </div>
 
                 {/* KPI Cards Grid */}
                 <div className="sq-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
                   <div className="sq-card" style={{ padding: 18, textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>🏢</div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><Building2 size={22} color="var(--text-sub)" /></div>
                     <div className="sq-stat-label">Active Queues</div>
                     <div className="sq-stat-value" style={{ fontSize: 28, margin: '4px 0' }}>{activeCount}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Accepting students</div>
                   </div>
                   <div className="sq-card" style={{ padding: 18, textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>👥</div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><Users size={22} color="var(--text-sub)" /></div>
                     <div className="sq-stat-label">Waiting Students</div>
                     <div className="sq-stat-value" style={{ fontSize: 28, margin: '4px 0' }}>{totalWaiting}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Across departments</div>
                   </div>
                   <div className="sq-card" style={{ padding: 18, textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>✅</div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><CheckCircle2 size={22} color="var(--text-sub)" /></div>
                     <div className="sq-stat-label">Served Today</div>
                     <div className="sq-stat-value" style={{ fontSize: 28, margin: '4px 0' }}>{analytics.totalCompleted}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Completed session tokens</div>
                   </div>
                   <div className="sq-card" style={{ padding: 18, textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>⏱️</div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><Clock size={22} color="var(--text-sub)" /></div>
                     <div className="sq-stat-label">Avg Service Time</div>
                     <div className="sq-stat-value" style={{ fontSize: 28, margin: '4px 0', color: 'var(--accent)' }}>
                       {analytics.avgServiceTime.toFixed(1)}m
@@ -1239,14 +1256,18 @@ export default function AdminDashboard() {
                           className={`sq-btn sq-btn-sm ${logView === 'system' ? 'sq-btn-primary' : 'sq-btn-ghost'}`}
                           style={{ fontSize: 11, height: 28, padding: '0 12px' }}
                         >
-                          ⚙️ Staff & Admin
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Settings size={13} /> Staff & Admin
+                          </span>
                         </button>
                         <button
                           onClick={() => setLogView('student')}
                           className={`sq-btn sq-btn-sm ${logView === 'student' ? 'sq-btn-primary' : 'sq-btn-ghost'}`}
                           style={{ fontSize: 11, height: 28, padding: '0 12px' }}
                         >
-                          🎓 Student
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <GraduationCap size={13} /> Student
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -1293,7 +1314,7 @@ export default function AdminDashboard() {
 
                   {viewFilteredLogs.length === 0 ? (
                     <EmptyState
-                      icon={logView === 'student' ? '🎓' : '📋'}
+                      icon={logView === 'student' ? <GraduationCap size={28} color="var(--text-sub)" /> : <ClipboardList size={28} color="var(--text-sub)" />}
                       title={logView === 'student' ? 'No student activity' : 'No system activity'}
                       description={
                         logView === 'student'
@@ -1350,9 +1371,33 @@ export default function AdminDashboard() {
 
               </div>
             )}
+
+            {activeTab === 'settings' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div className="sq-card sq-fade-in" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 18, gap: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Campus Geofencing</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4 }}>
+                      {geofencingEnabled
+                        ? 'Students must be within campus range to join a queue.'
+                        : 'Location check is off. Students can join from anywhere.'}
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleToggleGeofencing}
+                    disabled={geofenceLoading}
+                    className={`sq-btn sq-btn-sm ${geofencingEnabled ? 'sq-btn-primary' : 'sq-btn-ghost'}`}
+                    style={{ height: 32, fontSize: 12, opacity: geofenceLoading ? 0.6 : 1 }}
+                  >
+                    {geofenceLoading ? '...' : geofencingEnabled ? 'Enabled' : 'Disabled'}
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
 
+        </div>
       </div>
     </>
   );

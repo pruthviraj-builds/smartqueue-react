@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/layout/ThemeProvider';
 import { RecaptchaProvider } from '@/components/layout/RecaptchaProvider';
-import { ChatWidget } from '@/components/ChatWidget';
+import { ChatWidgetGate } from '@/components/ChatWidgetGate';
 
 
 const inter = Inter({
@@ -27,7 +27,7 @@ export default function RootLayout({
         <RecaptchaProvider>
           <ThemeProvider>
             {children}
-            <ChatWidget />
+            <ChatWidgetGate />
             
           </ThemeProvider>
         </RecaptchaProvider>

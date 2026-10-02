@@ -4,6 +4,7 @@ import { useState, useRef,useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { Navbar } from '@/components/layout/Navbar';
+import { Crown } from 'lucide-react';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getUserDoc } from '@/lib/firebase-helpers';
 import ReCAPTCHA from 'react-google-recaptcha';
@@ -82,7 +83,7 @@ export default function AdminLoginPage() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 22, marginBottom: 20,
               }}>
-                👑
+                <Crown size={22} />
               </div>
               <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
                 Admin Login
