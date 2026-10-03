@@ -8,7 +8,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { leaveQueue as leaveQueueAction, getUserDoc, logActivity } from '@/lib/firebase-helpers';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Ticket, Bell, Check, CircleDot, Circle } from 'lucide-react';
+import { Ticket, Bell, BellRing, Check, CircleDot, Circle } from 'lucide-react';
 import {
   doc,
   onSnapshot,
@@ -42,6 +42,30 @@ function formatWait(secs: number): string {
   return `${Math.floor(m / 60)}h ${m % 60}m`;
 }
 
+function playNotificationSound() {
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    // Pleasant two-tone chime: D5 (587.33Hz) -> A5 (880Hz)
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.45);
+  } catch {
+    // Silently ignore if blocked or unsupported
+  }
+}
+
 function TokenPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -54,12 +78,12 @@ function TokenPageContent() {
   const [queue, setQueue] = useState<QueueData | null>(null);
   const [avgServiceTime, setAvgServiceTime] = useState(5 * 60);
   const [isOnline, setIsOnline] = useState(true);
-  const [notifGranted, setNotifGranted] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
   
   const [startPosition, setStartPosition] = useState<number | null>(null);
   const [issueTime, setIssueTime] = useState<string>('--:--');
 
-  const lastPositionRef = useRef<number | null>(null);
+  const notifiedMilestonesRef = useRef<Set<string>>(new Set());
   const unsubTokenRef = useRef<(() => void) | null>(null);
   const unsubQueueRef = useRef<(() => void) | null>(null);
 
@@ -98,35 +122,60 @@ function TokenPageContent() {
     }
   }, []);
 
-  const requestNotifications = useCallback(async () => {
-    if (!('Notification' in window)) return;
+  // Read permission status on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifPermission(Notification.permission);
+    }
+  }, []);
+
+  const handleRequestPermission = useCallback(async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      alert('Browser notifications are not supported on this device.');
+      return;
+    }
     try {
       const permission = await Notification.requestPermission();
-      setNotifGranted(permission === 'granted');
+      setNotifPermission(permission);
+      if (permission === 'granted') {
+        playNotificationSound();
+        try {
+          new Notification('SmartQueue Notifications Active', {
+            body: 'You will receive alerts when you are 3rd, 2nd, and 1st in line!',
+            icon: '/globe.svg',
+          });
+        } catch {
+          // ignore
+        }
+      }
     } catch {
       // silently fail
     }
   }, []);
 
-  const sendNotification = useCallback(async (title: string, body: string) => {
-    if (!notifGranted) return;
+  const sendNotification = useCallback((title: string, body: string) => {
+    playNotificationSound();
+
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+
     try {
-      if ('serviceWorker' in navigator) {
-        const reg = await navigator.serviceWorker.ready;
-       await reg.showNotification(title, {
-          body,
-          icon: '/icon.png',
-          vibrate: [200, 100, 200],
-          tag: 'smartqueue-update',
-          renotify: true,
-        } as NotificationOptions);
-      } else if (Notification.permission === 'granted') {
-        new Notification(title, { body });
-      }
-    } catch {
-      // silently fail
+      const notif = new Notification(title, {
+        body,
+        icon: '/globe.svg',
+        tag: 'smartqueue-update',
+      });
+      setTimeout(() => {
+        try {
+          notif.close();
+        } catch {
+          // ignore
+        }
+      }, 8000);
+    } catch (err) {
+      console.error('Notification error:', err);
     }
-  }, [notifGranted]);
+  }, []);
 
   const loadAvgServiceTime = useCallback(async () => {
     if (!activeQueueId) return;
@@ -232,7 +281,6 @@ function TokenPageContent() {
 
   useEffect(() => {
     if (!activeQueueId || !activeTokenId) return;
-    requestNotifications();
     loadAvgServiceTime();
     startListeners();
 
@@ -240,7 +288,7 @@ function TokenPageContent() {
       unsubTokenRef.current?.();
       unsubQueueRef.current?.();
     };
-  }, [activeQueueId, activeTokenId, requestNotifications, loadAvgServiceTime, startListeners]);
+  }, [activeQueueId, activeTokenId, loadAvgServiceTime, startListeners]);
 
   // Derived display values
   const position = token && queue ? token.tokenNumber - queue.currentCounter : null;
@@ -257,14 +305,46 @@ function TokenPageContent() {
   }, [position, startPosition]);
 
   useEffect(() => {
-    if (position === null || !queue || !token) return;
-    if (position === lastPositionRef.current) return;
-    lastPositionRef.current = position;
+    if (!queue || !token) return;
 
-    if (position === 5) sendNotification('Update', `You are 5th in line for ${queue.deptName}.`);
-    if (position === 3) sendNotification('Almost Your Turn!', `You are 3rd in line for ${queue.deptName}.`);
-    if (position === 1) sendNotification('You Are Next!', `Head to the ${queue.deptName} counter now.`);
-    if (token.status === 'called') sendNotification('Ticket Called!', `Your token #${token.tokenNumber} was called!`);
+    // Called status alert
+    if (token.status === 'called') {
+      if (!notifiedMilestonesRef.current.has('called')) {
+        notifiedMilestonesRef.current.add('called');
+        sendNotification(
+          'Ticket Called!',
+          `Your token #${token.tokenNumber} has been called for ${queue.deptName}! Please proceed to the counter immediately.`
+        );
+      }
+      return;
+    }
+
+    if (position === null) return;
+
+    // 3rd in line (2 students ahead)
+    if (position === 3 && !notifiedMilestonesRef.current.has('pos_3')) {
+      notifiedMilestonesRef.current.add('pos_3');
+      sendNotification(
+        'Be Prepared — 3rd in Line',
+        `Token #${token.tokenNumber}: There are 2 students ahead of you for ${queue.deptName}.`
+      );
+    }
+    // 2nd in line (1 student ahead)
+    else if (position === 2 && !notifiedMilestonesRef.current.has('pos_2')) {
+      notifiedMilestonesRef.current.add('pos_2');
+      sendNotification(
+        'Almost Your Turn — 2nd in Line',
+        `Token #${token.tokenNumber}: There is only 1 student ahead of you for ${queue.deptName}.`
+      );
+    }
+    // 1st in line (0 students ahead / You're next)
+    else if (position === 1 && !notifiedMilestonesRef.current.has('pos_1')) {
+      notifiedMilestonesRef.current.add('pos_1');
+      sendNotification(
+        'You Are Next — 1st in Line',
+        `Token #${token.tokenNumber}: You are next in line! Head to the ${queue.deptName} counter now.`
+      );
+    }
   }, [position, queue, token, sendNotification]);
 
   const handleLeaveQueue = async () => {
@@ -293,22 +373,31 @@ function TokenPageContent() {
 
   // Determine Notification Mockup Text based on position
   let alertTitle = "Tracking position...";
-  let alertBody = `We will notify you when you are 5th in line.`;
+  let alertBody = `We will notify you when you are 3rd in line.`;
   let alertColor = "var(--text)";
   
-  if (aheadCount <= 5 && aheadCount > 3) {
-    alertTitle = "5 people ahead";
-    alertBody = `Token #${token?.tokenNumber} — you are getting closer.`;
-  } else if (aheadCount <= 3 && aheadCount > 0) {
-    alertTitle = "3 people ahead";
-    alertBody = `Token #${token?.tokenNumber} — almost there!`;
-  } else if (aheadCount === 0) {
+  if (aheadCount > 2) {
+    alertTitle = `${aheadCount} people ahead`;
+    alertBody = `Token #${token?.tokenNumber} — waiting in queue.`;
+  } else if (aheadCount === 2) {
+    alertTitle = "3rd in line (2 ahead)";
+    alertBody = `Token #${token?.tokenNumber} — please be prepared!`;
+    alertColor = "#ff9500";
+  } else if (aheadCount === 1) {
+    alertTitle = "2nd in line (1 ahead)";
+    alertBody = `Token #${token?.tokenNumber} — almost your turn!`;
+    alertColor = "#ff9500";
+  } else if (aheadCount === 0 && !isCalled && !isComplete) {
     alertTitle = "You're next!";
-    alertBody = `Token #${token?.tokenNumber} — head to ${queue?.deptName} now.`;
+    alertBody = `Token #${token?.tokenNumber} — head to ${queue?.deptName} counter now.`;
     alertColor = "var(--accent)";
   } else if (isCalled) {
     alertTitle = "Ticket Called!";
     alertBody = `Please approach the counter immediately.`;
+    alertColor = "#34c759";
+  } else if (isComplete) {
+    alertTitle = "Service Complete";
+    alertBody = `Thank you! Your turn is complete.`;
     alertColor = "#34c759";
   }
 
@@ -352,6 +441,69 @@ function TokenPageContent() {
 
       <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px 120px 20px' }}>
         
+        {/* Browser Notification Permission Banner */}
+        {notifPermission === 'default' && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            padding: '14px 20px',
+            borderRadius: '14px',
+            background: 'rgba(0, 113, 227, 0.08)',
+            border: '1px solid rgba(0, 113, 227, 0.22)',
+            marginBottom: '24px',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '10px', background: 'rgba(0,113,227,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
+                <BellRing size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                  Enable Turn Alerts
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-sub)' }}>
+                  Allow browser notifications to receive an alert when you are 3rd, 2nd, and 1st in line.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleRequestPermission}
+              className="sq-btn sq-btn-primary"
+              style={{
+                fontSize: 12,
+                padding: '8px 16px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <Bell size={14} /> Enable Notifications
+            </button>
+          </div>
+        )}
+
+        {notifPermission === 'denied' && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '12px 18px',
+            borderRadius: '12px',
+            background: 'rgba(255, 59, 48, 0.08)',
+            border: '1px solid rgba(255, 59, 48, 0.2)',
+            marginBottom: '24px',
+            fontSize: 12,
+            color: 'var(--text-sub)'
+          }}>
+            <Bell size={16} color="#ff3b30" />
+            <span>
+              Notifications are blocked in your browser. Click the site settings lock icon in your browser address bar to allow notifications for turn alerts.
+            </span>
+          </div>
+        )}
+
         {/* 3-Card Grid Layout */}
         <div style={{ 
           display: 'grid', 
@@ -460,42 +612,60 @@ function TokenPageContent() {
             {/* Checklists */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 'auto' }}>
               
-              {/* 5 Ahead */}
+              {/* 3rd in line */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border-s)' }}>
-                {aheadCount <= 5 ? (
+                {aheadCount <= 2 ? (
                   <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#34c759', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                     <Check size={12} strokeWidth={3} />
                   </div>
                 ) : (
                   <Circle size={20} color="var(--border)" />
                 )}
-                <span style={{ fontSize: 13, color: 'var(--text-sub)' }}>5 ahead</span>
+                <span style={{ fontSize: 13, color: aheadCount === 2 ? 'var(--text)' : 'var(--text-sub)', fontWeight: aheadCount === 2 ? 600 : 400 }}>
+                  3rd in line (2 ahead)
+                </span>
               </div>
 
-              {/* 3 Ahead */}
+              {/* 2nd in line */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border-s)' }}>
-                {aheadCount <= 3 ? (
+                {aheadCount <= 1 ? (
                   <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#34c759', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                     <Check size={12} strokeWidth={3} />
                   </div>
                 ) : (
                   <Circle size={20} color="var(--border)" />
                 )}
-                <span style={{ fontSize: 13, color: 'var(--text-sub)' }}>3 ahead</span>
+                <span style={{ fontSize: 13, color: aheadCount === 1 ? 'var(--text)' : 'var(--text-sub)', fontWeight: aheadCount === 1 ? 600 : 400 }}>
+                  2nd in line (1 ahead)
+                </span>
               </div>
 
-              {/* You're next! */}
+              {/* 1st in line / Next */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border-s)' }}>
+                {aheadCount === 0 && (position !== null && position <= 1) ? (
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#34c759', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <Check size={12} strokeWidth={3} />
+                  </div>
+                ) : (
+                  <CircleDot size={20} color={aheadCount <= 1 ? "var(--accent)" : "var(--border)"} />
+                )}
+                <span style={{ fontSize: 13, color: aheadCount === 0 && !isCalled ? 'var(--accent)' : 'var(--text-sub)', fontWeight: aheadCount === 0 ? 600 : 400 }}>
+                  1st in line (You&apos;re next!)
+                </span>
+              </div>
+
+              {/* Ticket Called */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
-                {aheadCount === 0 ? (
-                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                {isCalled ? (
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#34c759', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                     <Check size={12} strokeWidth={3} />
                   </div>
-                ) : aheadCount <= 1 ? (
-                  <CircleDot size={20} color="var(--accent)" />
                 ) : (
                   <Circle size={20} color="var(--border)" />
                 )}
-                <span style={{ fontSize: 13, color: aheadCount <= 1 ? 'var(--accent)' : 'var(--text-sub)', fontWeight: aheadCount <= 1 ? 600 : 400 }}>You're next!</span>
+                <span style={{ fontSize: 13, color: isCalled ? '#34c759' : 'var(--text-sub)', fontWeight: isCalled ? 600 : 400 }}>
+                  Ticket Called!
+                </span>
               </div>
             </div>
           </div>
